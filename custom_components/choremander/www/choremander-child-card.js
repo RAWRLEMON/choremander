@@ -1392,8 +1392,10 @@ class ChoremanderChildCard extends LitElement {
       // If assigned_to has specific child IDs, only show to those children
       // Ensure assigned_to is always an array
       let assignedTo = chore.assigned_to;
-      if (!Array.isArray(assignedTo)) {
+      if (assignedTo == null) { // Use == null to catch both undefined and null
         assignedTo = [];
+      } else if (!Array.isArray(assignedTo)) {
+        assignedTo = [assignedTo]; // Wrap non-array values
       }
 
       // Convert all assigned_to values to strings for consistent comparison
