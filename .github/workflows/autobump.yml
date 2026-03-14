@@ -3,7 +3,7 @@ name: Auto-Bump Version
 on:
   push:
     branches:
-      - main  # (If your main branch is called 'master', change this word to 'master')
+      - master  # (If your main branch is called 'master', change this word to 'master')
     # Only run this if you actually change python or frontend files
     paths:
       - 'custom_components/choremander/**'
