@@ -1251,6 +1251,16 @@ class ChoremanderChildCard extends LitElement {
 
     const childChores = this._filterAndSortChores(allChores, child);
 
+    // Sort chores so completed ones appear at the bottom of the list
+    const childChoresSorted = [...childChores].sort((a, b) => {
+      const aDone = this._isChoreCompletedForToday(a, child, todaysCompletions);
+      const bDone = this._isChoreCompletedForToday(b, child, todaysCompletions);
+      if (aDone !== bDone) {
+        return aDone ? 1 : -1;
+      }
+      return 0;
+    });
+
     // Log the filtering result
     console.debug(
       `[Choremander] After filtering: showing ${childChores.length} of ${allChores.length} chores for child "${child.name}" (${child.id})`
@@ -1332,7 +1342,7 @@ class ChoremanderChildCard extends LitElement {
                   <ha-icon icon="${this._getTimeCategoryIcon(this.config.time_category)}"></ha-icon>
                   ${this._getDynamicTitle()}
                 </div>
-                ${childChores.map((chore, index) => this._renderChoreCard(chore, child, pointsIcon, todaysCompletions, index))}
+                ${childChoresSorted.map((chore, index) => this._renderChoreCard(chore, child, pointsIcon, todaysCompletions, index))}
               `}
         </div>
 
@@ -1652,6 +1662,35 @@ class ChoremanderChildCard extends LitElement {
         </div>
       </div>
     `;
+  }
+
+  _isChoreCompletedForToday(chore, child, todaysCompletions = []) {
+    const childCompletionsToday = todaysCompletions.filter(
+      (comp) => comp.chore_id === chore.id && comp.child_id === child.id
+    );
+    let completionsToday = childCompletionsToday.length;
+    const dailyLimit = chore.daily_limit || 1;
+
+    const optimisticKey = `${chore.id}_${child.id}`;
+    const optimisticData = this._optimisticCompletions && this._optimisticCompletions[optimisticKey];
+    if (optimisticData) {
+      const actualTimestamps = childCompletionsToday.map(comp =>
+        comp.completed_at ? new Date(comp.completed_at).getTime() : 0
+      );
+
+      const optimisticTimestamps = optimisticData.timestamps || [optimisticData.timestamp || Date.now()];
+      let unreflectedOptimistic = 0;
+      for (const optTs of optimisticTimestamps) {
+        const isReflected = actualTimestamps.some(actTs => Math.abs(actTs - optTs) < 2000);
+        if (!isReflected) {
+          unreflectedOptimistic += 1;
+        }
+      }
+
+      completionsToday += unreflectedOptimistic;
+    }
+
+    return completionsToday >= dailyLimit;
   }
 
   _renderCelebration() {
