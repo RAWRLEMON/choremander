@@ -14,7 +14,7 @@ from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 # URL base path for serving static files
-URL_BASE: Final = "/choremander"
+URL_BASE: Final = "/hacsfiles/choremander"
 
 # List of card files to register as Lovelace resources
 CARDS: Final = [
@@ -54,18 +54,11 @@ async def async_register_frontend(hass: HomeAssistant) -> None:
         _LOGGER.debug("Frontend already registered, skipping")
         return
 
-    www_path = Path(__file__).parent / "www"
+    # For HACS installations, static paths are handled by HACS
+    # For manual installations, we would need to register static paths,
+    # but since this is a HACS component, we skip this.
 
-    if not www_path.exists():
-        _LOGGER.warning("www directory not found at %s", www_path)
-        return
-
-    # Register the www folder as a static path
-    await hass.http.async_register_static_paths(
-        [StaticPathConfig(URL_BASE, str(www_path), False)]
-    )
-
-    _LOGGER.debug("Registered static path: %s -> %s", URL_BASE, www_path)
+    _LOGGER.debug("Skipping static path registration for HACS component")
 
     # Register global JS modules (loaded on all pages, including config flow)
     version = _get_version()

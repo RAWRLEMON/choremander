@@ -388,7 +388,7 @@ class ChoremanderChildCard extends LitElement {
   _playAudioFile(filename) {
     try {
       // Build the URL to the audio file in the www folder
-      const audio = new Audio(`/local/choremander/${filename}`);
+      const audio = new Audio(`/hacsfiles/choremander/${filename}`);
       audio.volume = 1.0;
       audio.play().catch(e => {
         console.warn('[Choremander] Error playing audio file:', e);

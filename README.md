@@ -123,15 +123,15 @@ If you use Lovelace in YAML mode, add these resources to your `configuration.yam
 ```yaml
 lovelace:
   resources:
-    - url: /choremander/choremander-child-card.js
+    - url: /hacsfiles/choremander/choremander-child-card.js
       type: module
-    - url: /choremander/choremander-rewards-card.js
+    - url: /hacsfiles/choremander/choremander-rewards-card.js
       type: module
-    - url: /choremander/choremander-approvals-card.js
+    - url: /hacsfiles/choremander/choremander-approvals-card.js
       type: module
-    - url: /choremander/choremander-points-card.js
+    - url: /hacsfiles/choremander/choremander-points-card.js
       type: module
-    - url: /choremander/choremander-reorder-card.js
+    - url: /hacsfiles/choremander/choremander-reorder-card.js
       type: module
 ```
 
