@@ -1251,6 +1251,12 @@ class ChoremanderChildCard extends LitElement {
 
     const childChores = this._filterAndSortChores(allChores, child);
 
+    // Get today's completions for this child (with timezone-aware filtering as fallback)
+    // The backend provides todays_completions, but we also apply client-side filtering
+    // to ensure timezone correctness matches the HA frontend timezone
+    const allCompletions = entity.attributes.todays_completions || entity.attributes.completions || [];
+    const todaysCompletions = this._filterCompletionsForToday(allCompletions);
+
     // Sort chores so completed ones appear at the bottom of the list
     const childChoresSorted = [...childChores].sort((a, b) => {
       const aDone = this._isChoreCompletedForToday(a, child, todaysCompletions);
@@ -1284,12 +1290,6 @@ class ChoremanderChildCard extends LitElement {
 
     // Get pending points for this child
     const pendingPoints = child.pending_points || 0;
-
-    // Get today's completions for this child (with timezone-aware filtering as fallback)
-    // The backend provides todays_completions, but we also apply client-side filtering
-    // to ensure timezone correctness matches the HA frontend timezone
-    const allCompletions = entity.attributes.todays_completions || entity.attributes.completions || [];
-    const todaysCompletions = this._filterCompletionsForToday(allCompletions);
 
     // Debug logging to help troubleshoot daily limit issues
     if (allCompletions.length > 0 || todaysCompletions.length > 0) {
