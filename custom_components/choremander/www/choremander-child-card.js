@@ -15,12 +15,23 @@
  * - Clickable chore rows with checkbox visual indicator
  */
 
-const LitElement = customElements.get("hui-masonry-view")
-  ? Object.getPrototypeOf(customElements.get("hui-masonry-view"))
-  : Object.getPrototypeOf(customElements.get("hui-view"));
+// Safer LitElement extraction - prevent crashes if HA core hasn't fully loaded
+let LitElement;
+const huiMasonry = customElements.get("hui-masonry-view");
+const huiView = customElements.get("hui-view");
 
-const html = LitElement.prototype.html;
-const css = LitElement.prototype.css;
+if (huiMasonry) {
+  LitElement = Object.getPrototypeOf(huiMasonry);
+} else if (huiView) {
+  LitElement = Object.getPrototypeOf(huiView);
+} else {
+  // Fallback to a basic HTMLElement if HA core hasn't loaded Lit yet
+  LitElement = class extends HTMLElement {};
+  console.warn("[Choremander] LitElement not found on load. Card may not render correctly.");
+}
+
+const html = LitElement.prototype.html || ((strings, ...values) => strings[0]);
+const css = LitElement.prototype.css || ((strings, ...values) => strings[0]);
 
 class ChoremanderChildCard extends LitElement {
   static get properties() {

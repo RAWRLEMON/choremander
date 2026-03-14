@@ -5,9 +5,10 @@ import logging
 from pathlib import Path
 from typing import Final
 
+from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.components.frontend import add_extra_js_url
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 
 from .const import DOMAIN
 
@@ -79,68 +80,79 @@ async def async_register_frontend(hass: HomeAssistant) -> None:
 
 
 async def async_register_cards(hass: HomeAssistant) -> None:
-    """Register card resources with Lovelace automatically."""
-    version = _get_version()
+    """Register card resources with Lovelace automatically after HA startup.
+    
+    We use the startup signal to avoid race conditions where Lovelace
+    isn't fully loaded yet during config entry setup.
+    """
+    
+    @callback
+    async def _register_cards_on_startup(event):
+        """Register cards once Home Assistant has fully started."""
+        version = _get_version()
 
-    lovelace_data = hass.data.get("lovelace")
-    if lovelace_data is None:
-        _LOGGER.warning("Lovelace not available, cards may need manual registration")
-        return
-
-    # Get the mode - "storage" or "yaml"
-    mode = getattr(lovelace_data, "mode", "storage")
-
-    if mode == "yaml":
-        _LOGGER.info(
-            "Lovelace is in YAML mode. Add these resources to configuration.yaml:"
-        )
-        for card in CARDS:
-            _LOGGER.info("  - url: %s/%s", URL_BASE, card)
-            _LOGGER.info("    type: module")
-        return
-
-    # Storage mode - add resources automatically
-    try:
-        resources = lovelace_data.resources
-        if resources is None:
-            _LOGGER.debug("Lovelace resources collection not available")
+        lovelace_data = hass.data.get("lovelace")
+        if lovelace_data is None:
+            _LOGGER.debug("Lovelace not available, cards need manual registration")
             return
 
-        # Ensure resources are loaded before modification
-        await resources.async_load()
+        # Get the mode - "storage" or "yaml"
+        mode = getattr(lovelace_data, "mode", "storage")
 
-        # Get existing resource URLs (strip query params for comparison)
-        existing_urls = set()
-        for item in resources.async_items():
-            url = item.get("url", "")
-            existing_urls.add(url.split("?")[0])
+        if mode == "yaml":
+            _LOGGER.info(
+                "Lovelace is in YAML mode. Add these resources to configuration.yaml:"
+            )
+            for card in CARDS:
+                _LOGGER.info("  - url: %s/%s", URL_BASE, card)
+                _LOGGER.info("    type: module")
+            return
 
-        # Register each card
-        for card in CARDS:
-            card_url = f"{URL_BASE}/{card}"
-            versioned_url = f"{card_url}?v={version}"
+        # Storage mode - add resources automatically
+        try:
+            resources = lovelace_data.resources
+            if resources is None:
+                _LOGGER.debug("Lovelace resources collection not available")
+                return
 
-            if card_url in existing_urls:
-                # Update version if needed
-                for item in resources.async_items():
-                    if item.get("url", "").split("?")[0] == card_url:
-                        if item.get("url") != versioned_url:
-                            await resources.async_update_item(
-                                item["id"],
-                                {"url": versioned_url},
-                            )
-                            _LOGGER.debug("Updated card version: %s", versioned_url)
-                        break
-            else:
-                await resources.async_create_item(
-                    {"url": versioned_url, "res_type": "module"}
-                )
-                _LOGGER.info("Registered Lovelace resource: %s", versioned_url)
+            # Ensure resources are loaded before modification
+            await resources.async_load()
 
-    except Exception as err:  # noqa: BLE001
-        _LOGGER.warning(
-            "Could not register Lovelace resources: %s. "
-            "Cards available at %s/<card-name>.js",
-            err,
-            URL_BASE,
-        )
+            # Get existing resource URLs (strip query params for comparison)
+            existing_urls = set()
+            for item in resources.async_items():
+                url = item.get("url", "")
+                existing_urls.add(url.split("?")[0])
+
+            # Register each card
+            for card in CARDS:
+                card_url = f"{URL_BASE}/{card}"
+                versioned_url = f"{card_url}?v={version}"
+
+                if card_url in existing_urls:
+                    # Update version if needed
+                    for item in resources.async_items():
+                        if item.get("url", "").split("?")[0] == card_url:
+                            if item.get("url") != versioned_url:
+                                await resources.async_update_item(
+                                    item["id"],
+                                    {"url": versioned_url},
+                                )
+                                _LOGGER.debug("Updated card version: %s", versioned_url)
+                            break
+                else:
+                    await resources.async_create_item(
+                        {"url": versioned_url, "res_type": "module"}
+                    )
+                    _LOGGER.info("Registered Lovelace resource: %s", versioned_url)
+
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug(
+                "Could not auto-register Lovelace resources: %s. "
+                "Cards are available at %s/<card-name>.js - add them manually via Settings > Dashboards > Resources.",
+                err,
+                URL_BASE,
+            )
+    
+    # Register the callback to run after Home Assistant fully starts
+    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, _register_cards_on_startup)
