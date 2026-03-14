@@ -421,6 +421,10 @@ class ChoremanderChildCard extends LitElement {
         --fun-orange: #e67e22;
         --fun-red: #e74c3c;
         --fun-cyan: #1abc9c;
+        /* Uniform color variables - will be set dynamically */
+        --uniform-chore-color: var(--fun-blue);
+        --uniform-chore-bg-light: #e3f2fd;
+        --uniform-chore-bg-dark: #bbdefb;
       }
 
       ha-card {
@@ -640,24 +644,31 @@ class ChoremanderChildCard extends LitElement {
         cursor: pointer;
       }
 
-      .chore-card:nth-child(odd) {
+      /* Default alternating colors */
+      .chore-card[data-chore-color="default"]:nth-child(odd) {
         border-color: var(--fun-blue);
         background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
       }
 
-      .chore-card:nth-child(even) {
+      .chore-card[data-chore-color="default"]:nth-child(even) {
         border-color: var(--fun-pink);
         background: linear-gradient(135deg, #fce4ec 0%, #f8bbd9 100%);
       }
 
-      .chore-card:nth-child(3n) {
+      .chore-card[data-chore-color="default"]:nth-child(3n) {
         border-color: var(--fun-green);
         background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
       }
 
-      .chore-card:nth-child(4n) {
+      .chore-card[data-chore-color="default"]:nth-child(4n) {
         border-color: var(--fun-orange);
         background: linear-gradient(135deg, #fff3e0 0%, #ffcc80 100%);
+      }
+
+      /* Uniform color mode */
+      .chore-card[data-chore-color]:not([data-chore-color="default"]) {
+        border-color: var(--uniform-chore-color);
+        background: linear-gradient(135deg, var(--uniform-chore-bg-light) 0%, var(--uniform-chore-bg-dark) 100%);
       }
 
       /* Touch/hover feedback - works for both touch and mouse */
@@ -1147,6 +1158,7 @@ class ChoremanderChildCard extends LitElement {
       undo_sound: "undo",     // Sound to play when undoing a completion
       line_size: "medium",
       chore_padding: "20px 24px",
+      chore_color: "default", // "default" for alternating colors, or a color value like "#ff6b9d"
       ...config,
     };
   }
@@ -1164,6 +1176,7 @@ class ChoremanderChildCard extends LitElement {
       entity: "sensor.choremander_overview",
       child_id: "",
       time_category: "morning",
+      chore_color: "default",
     };
   }
 
@@ -1183,6 +1196,17 @@ class ChoremanderChildCard extends LitElement {
           </div>
         </ha-card>
       `;
+    }
+
+    // Set uniform color CSS variables if chore_color is specified
+    if (this.config.chore_color && this.config.chore_color !== "default") {
+      const color = this.config.chore_color;
+      // Create lighter and darker variants for the gradient
+      const lighterColor = this._lightenColor(color, 0.3);
+      const darkerColor = this._lightenColor(color, -0.1);
+      this.style.setProperty('--uniform-chore-color', color);
+      this.style.setProperty('--uniform-chore-bg-light', lighterColor);
+      this.style.setProperty('--uniform-chore-bg-dark', darkerColor);
     }
 
     // Get child info
@@ -1300,7 +1324,7 @@ class ChoremanderChildCard extends LitElement {
           </div>
         </div>
 
-        <div class="chores-container">
+        <div class="chores-container" data-chore-color="${this.config.chore_color || 'default'}">
           ${childChores.length === 0
             ? this._renderEmptyState()
             : html`
@@ -1424,6 +1448,31 @@ class ChoremanderChildCard extends LitElement {
       all: "mdi:clock-outline",
     };
     return icons[category] || icons.anytime;
+  }
+
+  /**
+   * Lighten or darken a hex color
+   * @param {string} hex - Hex color string (e.g., "#ff6b9d")
+   * @param {number} amount - Amount to lighten (positive) or darken (negative), -1 to 1 range
+   * @returns {string} Modified hex color
+   */
+  _lightenColor(hex, amount) {
+    // Remove # if present
+    hex = hex.replace(/^#/, '');
+
+    // Parse r, g, b values
+    const num = parseInt(hex, 16);
+    let r = (num >> 16);
+    let g = (num >> 8 & 0x00FF);
+    let b = (num & 0x0000FF);
+
+    // Adjust each color component
+    r = Math.min(255, Math.max(0, r + (amount * 255)));
+    g = Math.min(255, Math.max(0, g + (amount * 255)));
+    b = Math.min(255, Math.max(0, b + (amount * 255)));
+
+    // Convert back to hex
+    return '#' + ((1 << 24) + (Math.round(r) << 16) + (Math.round(g) << 8) + Math.round(b)).toString(16).slice(1);
   }
 
   _getTimeCategoryLabel(category) {
@@ -1963,6 +2012,40 @@ class ChoremanderChildCardEditor extends LitElement {
       </div>
 
       <div class="form-group">
+        <label>Chore Color</label>
+        <select @change="${this._choreColorChanged}">
+          <option value="default" ?selected="${this.config.chore_color === "default" || !this.config.chore_color}">
+            Default (Alternating Colors)
+          </option>
+          <option value="#ff6b9d" ?selected="${this.config.chore_color === "#ff6b9d"}">
+            Pink
+          </option>
+          <option value="#9b59b6" ?selected="${this.config.chore_color === "#9b59b6"}">
+            Purple
+          </option>
+          <option value="#3498db" ?selected="${this.config.chore_color === "#3498db"}">
+            Blue
+          </option>
+          <option value="#2ecc71" ?selected="${this.config.chore_color === "#2ecc71"}">
+            Green
+          </option>
+          <option value="#f1c40f" ?selected="${this.config.chore_color === "#f1c40f"}">
+            Yellow
+          </option>
+          <option value="#e67e22" ?selected="${this.config.chore_color === "#e67e22"}">
+            Orange
+          </option>
+          <option value="#e74c3c" ?selected="${this.config.chore_color === "#e74c3c"}">
+            Red
+          </option>
+          <option value="#1abc9c" ?selected="${this.config.chore_color === "#1abc9c"}">
+            Teal
+          </option>
+        </select>
+        <small>Set the color for all chore rows, or use default alternating colors</small>
+      </div>
+
+      <div class="form-group">
         <label>Line Size</label>
         <select @change="${this._lineSizeChanged}">
           <option value="small" ?selected="${this.config.line_size === "small"}">
@@ -2018,6 +2101,10 @@ class ChoremanderChildCardEditor extends LitElement {
 
   _lineSizeChanged(e) {
     this._updateConfig("line_size", e.target.value);
+  }
+
+  _choreColorChanged(e) {
+    this._updateConfig("chore_color", e.target.value);
   }
 
   _chorePaddingChanged(e) {
