@@ -1,0 +1,51 @@
+name: Auto-Bump Version
+
+on:
+  push:
+    branches:
+      - main  # (If your main branch is called 'master', change this word to 'master')
+    # Only run this if you actually change python or frontend files
+    paths:
+      - 'custom_components/choremander/**'
+      - '!custom_components/choremander/manifest.json' # Don't trigger on its own changes!
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write 
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bump patch version in manifest.json
+        run: |
+          CURRENT_VERSION=$(jq -r .version custom_components/choremander/manifest.json)
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+          
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+          
+          echo "Updating version from $CURRENT_VERSION to $NEW_VERSION"
+          
+          jq --arg v "$NEW_VERSION" '.version = $v' custom_components/choremander/manifest.json > tmp.json
+          mv tmp.json custom_components/choremander/manifest.json
+          
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add custom_components/choremander/manifest.json
+          
+          if git diff-index --quiet HEAD; then
+            echo "No changes to commit"
+          else
+            git commit -m "Auto-bump manifest version to ${{ env.NEW_VERSION }} [skip ci]"
+            git push
+          fi
