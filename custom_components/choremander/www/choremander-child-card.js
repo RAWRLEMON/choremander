@@ -610,7 +610,6 @@ class ChoremanderChildCard extends LitElement {
       .chore-card {
         background: white;
         border-radius: 24px;
-        padding: 20px 24px;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -1106,6 +1105,20 @@ class ChoremanderChildCard extends LitElement {
           font-size: 1.4rem;
         }
       }
+
+      .chore-card[line-size="small"] .chore-name {
+        font-size: 1rem;
+      }
+      .chore-card[line-size="small"] .chore-points {
+        font-size: 0.8rem;
+      }
+
+      .chore-card[line-size="large"] .chore-name {
+        font-size: 2rem;
+      }
+      .chore-card[line-size="large"] .chore-points {
+        font-size: 1.5rem;
+      }
     `;
   }
 
@@ -1121,6 +1134,8 @@ class ChoremanderChildCard extends LitElement {
       debug: false,
       default_sound: "coin",  // Default sound to use if chore doesn't specify one
       undo_sound: "undo",     // Sound to play when undoing a completion
+      line_size: "medium",
+      chore_padding: "20px 24px",
       ...config,
     };
   }
@@ -1554,6 +1569,8 @@ class ChoremanderChildCard extends LitElement {
         class="chore-card ${isLoading ? "loading" : ""} ${isCelebrating ? "celebrating" : ""} ${isCompletedForToday ? "completed" : ""}"
         @click="${handleRowClick}"
         title="${isCompletedForToday ? 'Click to undo' : 'Click to complete'}"
+        line-size="${this.config.line_size}"
+        style="padding: ${this.config.chore_padding};"
       >
         <div class="chore-info">
           <div class="chore-number-wrapper">
@@ -1935,6 +1952,33 @@ class ChoremanderChildCardEditor extends LitElement {
       </div>
 
       <div class="form-group">
+        <label>Line Size</label>
+        <select @change="${this._lineSizeChanged}">
+          <option value="small" ?selected="${this.config.line_size === "small"}">
+            Small
+          </option>
+          <option value="medium" ?selected="${this.config.line_size === "medium" || !this.config.line_size}">
+            Medium
+          </option>
+          <option value="large" ?selected="${this.config.line_size === "large"}">
+            Large
+          </option>
+        </select>
+        <small>Set the font size for chore names and points</small>
+      </div>
+
+      <div class="form-group">
+        <label>Chore Padding</label>
+        <input
+          type="text"
+          .value="${this.config.chore_padding || "20px 24px"}"
+          @input="${this._chorePaddingChanged}"
+          placeholder="e.g., 10px 15px"
+        />
+        <small>Set the padding for each chore row (e.g., "15px 20px")</small>
+      </div>
+
+      <div class="form-group">
         <label>
           <input
             type="checkbox"
@@ -1959,6 +2003,14 @@ class ChoremanderChildCardEditor extends LitElement {
 
   _timeCategoryChanged(e) {
     this._updateConfig("time_category", e.target.value);
+  }
+
+  _lineSizeChanged(e) {
+    this._updateConfig("line_size", e.target.value);
+  }
+
+  _chorePaddingChanged(e) {
+    this._updateConfig("chore_padding", e.target.value);
   }
 
   _debugChanged(e) {

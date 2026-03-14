@@ -106,6 +106,9 @@ async def async_register_cards(hass: HomeAssistant) -> None:
             _LOGGER.debug("Lovelace resources collection not available")
             return
 
+        # Ensure resources are loaded before modification
+        await resources.async_load()
+
         # Get existing resource URLs (strip query params for comparison)
         existing_urls = set()
         for item in resources.async_items():
