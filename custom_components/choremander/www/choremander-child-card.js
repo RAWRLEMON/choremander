@@ -1641,6 +1641,7 @@ class ChoremanderChildCard extends LitElement {
         class="chore-card ${isLoading ? "loading" : ""} ${isCelebrating ? "celebrating" : ""} ${isCompletedForToday ? "completed" : ""}"
         @click="${handleRowClick}"
         title="${isCompletedForToday ? 'Click to undo' : 'Click to complete'}"
+        data-chore-color="${this.config.chore_color || 'default'}"
         line-size="${this.config.line_size}"
         style="padding: ${this.config.chore_padding};"
       >
