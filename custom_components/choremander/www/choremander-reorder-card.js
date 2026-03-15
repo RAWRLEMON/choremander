@@ -33,6 +33,8 @@ class ChoremanderReorderCard extends LitElement {
       _saving: { type: Boolean },
       _localChoreOrder: { type: Object },
       _hasChanges: { type: Boolean },
+      _selectedChildId: { type: String },
+      _initialChildSet: { type: Boolean },
     };
   }
 
@@ -41,6 +43,10 @@ class ChoremanderReorderCard extends LitElement {
     this._saving = false;
     this._localChoreOrder = {};
     this._hasChanges = false;
+    this._selectedChildId = "";
+    this._initialChildSet = false;
+    this._savePromise = null;
+    this._localChoreOrderChildId = "";
   }
 
   static get styles() {
@@ -80,6 +86,22 @@ class ChoremanderReorderCard extends LitElement {
         padding: 4px 12px;
         background: var(--secondary-background-color);
         border-radius: 16px;
+      }
+
+      .child-select {
+        min-width: 140px;
+        padding: 6px 12px;
+        font-size: 1em;
+        color: var(--primary-text-color);
+        background: var(--secondary-background-color);
+        border: 1px solid var(--divider-color);
+        border-radius: 8px;
+        cursor: pointer;
+      }
+
+      .child-select:focus {
+        outline: none;
+        border-color: var(--primary-color);
       }
 
       .save-button {
@@ -375,9 +397,6 @@ class ChoremanderReorderCard extends LitElement {
     if (!config.entity) {
       throw new Error("Please define an entity (Choremander overview sensor)");
     }
-    if (!config.child_id) {
-      throw new Error("Please define a child_id");
-    }
     this.config = {
       title: "Reorder Chores",
       ...config,
@@ -405,8 +424,32 @@ class ChoremanderReorderCard extends LitElement {
 
     // Initialize local chore order from server data when hass changes
     if (changedProperties.has("hass") && this.hass && this.config) {
+      const entity = this.hass.states[this.config.entity];
+      const children = entity?.attributes?.children || [];
+      // Set initial dropdown selection from config or first child (only before user has ever selected/deselected)
+      if (this._selectedChildId === "" && children.length > 0 && !this._initialChildSet) {
+        const initial = this.config.child_id && children.some((c) => c.id === this.config.child_id)
+          ? this.config.child_id
+          : children[0].id;
+        this._selectedChildId = initial;
+        this._initialChildSet = true;
+      }
       this._initializeLocalOrder();
     }
+  }
+
+  _getEffectiveChildId() {
+    if (!this.hass || !this.config) return "";
+    const entity = this.hass.states[this.config.entity];
+    const children = entity?.attributes?.children || [];
+    if (children.length === 0) return "";
+    // Allow empty selection so user can deselect back to "Select a child..." screen
+    if (this._selectedChildId === "") return "";
+    const fromDropdown = children.some((c) => c.id === this._selectedChildId);
+    if (fromDropdown) return this._selectedChildId;
+    const fromConfig = this.config.child_id && children.some((c) => c.id === this.config.child_id);
+    if (fromConfig) return this.config.child_id;
+    return children[0].id;
   }
 
   _initializeLocalOrder() {
@@ -414,10 +457,18 @@ class ChoremanderReorderCard extends LitElement {
     if (!entity) return;
 
     const children = entity.attributes.children || [];
-    const child = children.find((c) => c.id === this.config.child_id);
+    const effectiveChildId = this._getEffectiveChildId();
+    const child = children.find((c) => c.id === effectiveChildId);
     if (!child) return;
 
-    // Only initialize if we don't have local changes
+    // If the effective child changed (e.g. selected child was deleted), discard local state
+    // so we don't save the old child's data to the new child.
+    if (effectiveChildId !== this._localChoreOrderChildId) {
+      this._hasChanges = false;
+      this._localChoreOrderChildId = effectiveChildId;
+    }
+
+    // Only initialize from server when we don't have local changes
     if (!this._hasChanges) {
       const serverOrder = child.chore_order || [];
       // Build a map of time_category -> ordered chore IDs
@@ -522,14 +573,39 @@ class ChoremanderReorderCard extends LitElement {
     }
 
     const children = entity.attributes.children || [];
-    const child = children.find((c) => c.id === this.config.child_id);
+    const effectiveChildId = this._getEffectiveChildId();
+    const child = children.find((c) => c.id === effectiveChildId);
 
-    if (!child) {
+    if (children.length === 0) {
       return html`
         <ha-card>
           <div class="error-state">
             <ha-icon icon="mdi:account-alert"></ha-icon>
-            <div>Child not found: ${this.config.child_id}</div>
+            <div>No children found in Choremander</div>
+          </div>
+        </ha-card>
+      `;
+    }
+
+    if (!child) {
+      return html`
+        <ha-card>
+          <div class="card-header">
+            <div class="header-left">
+              <span class="card-title">${this.config.title}</span>
+              <select class="child-select" .value="${this._selectedChildId || ''}" @change="${this._onChildSelectChange}">
+                <option value="">Select a child...</option>
+                ${children.map(
+                  (c) => html`
+                    <option value="${c.id}" ?selected="${this._selectedChildId === c.id}">${c.name}</option>
+                  `
+                )}
+              </select>
+            </div>
+          </div>
+          <div class="empty-state">
+            <ha-icon icon="mdi:account-search"></ha-icon>
+            <div class="message">Select a child to reorder their chores</div>
           </div>
         </ha-card>
       `;
@@ -544,7 +620,14 @@ class ChoremanderReorderCard extends LitElement {
           <div class="card-header">
             <div class="header-left">
               <span class="card-title">${this.config.title}</span>
-              <span class="child-name">${child.name}</span>
+              <select class="child-select" .value="${effectiveChildId}" @change="${this._onChildSelectChange}">
+                <option value="">Select a child...</option>
+                ${children.map(
+                  (c) => html`
+                    <option value="${c.id}">${c.name}</option>
+                  `
+                )}
+              </select>
             </div>
           </div>
           <div class="empty-state">
@@ -564,7 +647,14 @@ class ChoremanderReorderCard extends LitElement {
         <div class="card-header">
           <div class="header-left">
             <span class="card-title">${this.config.title}</span>
-            <span class="child-name">${child.name}</span>
+            <select class="child-select" .value="${effectiveChildId}" @change="${this._onChildSelectChange}">
+              <option value="">Select a child...</option>
+              ${children.map(
+                (c) => html`
+                  <option value="${c.id}">${c.name}</option>
+                `
+              )}
+            </select>
           </div>
           <button
             class="save-button ${this._saving ? "saving" : ""} ${this._hasChanges ? "has-changes" : ""}"
@@ -657,6 +747,26 @@ class ChoremanderReorderCard extends LitElement {
     `;
   }
 
+  async _onChildSelectChange(e) {
+    const newChildId = e.target.value || "";
+    if (this._hasChanges) {
+      const saveFirst = confirm("You have unsaved changes. Save before switching child?");
+      if (!saveFirst) {
+        this.requestUpdate();
+        return;
+      }
+      await this._handleSave();
+      if (this._hasChanges) {
+        this.requestUpdate();
+        return;
+      }
+    }
+    this._selectedChildId = newChildId;
+    this._hasChanges = false;
+    this._initializeLocalOrder();
+    this.requestUpdate();
+  }
+
   _moveChore(category, currentIndex, direction) {
     const newIndex = currentIndex + direction;
     const categoryOrder = [...(this._localChoreOrder[category] || [])];
@@ -679,58 +789,70 @@ class ChoremanderReorderCard extends LitElement {
   }
 
   async _handleSave() {
-    if (this._saving || !this._hasChanges) {
+    // If a save is already in progress, wait for it so the caller can proceed after it completes
+    if (this._saving && this._savePromise) {
+      await this._savePromise;
+      return;
+    }
+    if (!this._hasChanges) {
       return;
     }
 
     this._saving = true;
     this.requestUpdate();
 
-    try {
-      // Combine all category orders into a single flat array
-      const timeCategories = ["morning", "afternoon", "evening", "night", "anytime"];
-      const fullOrder = [];
+    this._savePromise = (async () => {
+      // Capture child_id at save start so a dropdown change during await doesn't save to the wrong child
+      const childIdToSave = this._getEffectiveChildId();
+      try {
+        // Combine all category orders into a single flat array
+        const timeCategories = ["morning", "afternoon", "evening", "night", "anytime"];
+        const fullOrder = [];
 
-      for (const category of timeCategories) {
-        const categoryOrder = this._localChoreOrder[category] || [];
-        fullOrder.push(...categoryOrder);
-      }
+        for (const category of timeCategories) {
+          const categoryOrder = this._localChoreOrder[category] || [];
+          fullOrder.push(...categoryOrder);
+        }
 
-      await this.hass.callService("choremander", "set_chore_order", {
-        child_id: this.config.child_id,
-        chore_order: fullOrder,
-      });
-
-      this._hasChanges = false;
-
-      // Show success feedback
-      if (this.hass.callService) {
-        this.hass.callService("persistent_notification", "create", {
-          title: "Chore Order Saved",
-          message: "The chore order has been updated successfully.",
-          notification_id: "choremander_reorder_success",
+        await this.hass.callService("choremander", "set_chore_order", {
+          child_id: childIdToSave,
+          chore_order: fullOrder,
         });
 
-        // Auto-dismiss after 3 seconds
-        setTimeout(() => {
-          this.hass.callService("persistent_notification", "dismiss", {
+        this._hasChanges = false;
+
+        // Show success feedback
+        if (this.hass.callService) {
+          this.hass.callService("persistent_notification", "create", {
+            title: "Chore Order Saved",
+            message: "The chore order has been updated successfully.",
             notification_id: "choremander_reorder_success",
           });
-        }, 3000);
+
+          // Auto-dismiss after 3 seconds
+          setTimeout(() => {
+            this.hass.callService("persistent_notification", "dismiss", {
+              notification_id: "choremander_reorder_success",
+            });
+          }, 3000);
+        }
+      } catch (error) {
+        console.error("Failed to save chore order:", error);
+        if (this.hass.callService) {
+          this.hass.callService("persistent_notification", "create", {
+            title: "Error Saving Order",
+            message: `Failed to save chore order: ${error.message}`,
+            notification_id: "choremander_reorder_error",
+          });
+        }
+      } finally {
+        this._saving = false;
+        this._savePromise = null;
+        this.requestUpdate();
       }
-    } catch (error) {
-      console.error("Failed to save chore order:", error);
-      if (this.hass.callService) {
-        this.hass.callService("persistent_notification", "create", {
-          title: "Error Saving Order",
-          message: `Failed to save chore order: ${error.message}`,
-          notification_id: "choremander_reorder_error",
-        });
-      }
-    } finally {
-      this._saving = false;
-      this.requestUpdate();
-    }
+    })();
+
+    await this._savePromise;
   }
 }
 
@@ -802,9 +924,9 @@ class ChoremanderReorderCardEditor extends LitElement {
       </div>
 
       <div class="form-group">
-        <label>Child</label>
+        <label>Default child (optional)</label>
         <select @change="${this._childIdChanged}">
-          <option value="">Select a child...</option>
+          <option value="">Any — choose in card</option>
           ${children.map(
             (child) => html`
               <option value="${child.id}" ?selected="${this.config.child_id === child.id}">
@@ -813,7 +935,7 @@ class ChoremanderReorderCardEditor extends LitElement {
             `
           )}
         </select>
-        <small>Which child to manage chore order for</small>
+        <small>Initial selection when card loads. You can switch children anytime using the dropdown in the card.</small>
       </div>
 
       <div class="form-group">
