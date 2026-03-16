@@ -42,6 +42,7 @@ class ChoremanderChildCard extends LitElement {
       _celebrating: { type: String },
       _confetti: { type: Array },
       _optimisticCompletions: { type: Object },
+      _activeTimeCategory: { type: String },
     };
   }
 
@@ -55,6 +56,9 @@ class ChoremanderChildCard extends LitElement {
     this._optimisticCompletions = {};
     // Audio context for generating sounds (lazy initialized)
     this._audioContext = null;
+    // Active time category for in-card filtering (defaults to config)
+    this._activeTimeCategory = null;
+    this._configTimeCategory = null;
   }
 
   /**
@@ -621,6 +625,47 @@ class ChoremanderChildCard extends LitElement {
         --mdc-icon-size: 36px;
       }
 
+      .time-category-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 8px 0 4px;
+      }
+
+      .time-category-button {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        border: none;
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        cursor: pointer;
+        color: var(--fun-purple);
+        background: rgba(155, 89, 182, 0.12);
+        transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s ease;
+      }
+
+      .time-category-button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+      }
+
+      .time-category-button:active {
+        transform: translateY(0);
+      }
+
+      .time-category-button.active {
+        background: var(--fun-purple);
+        color: white;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      }
+
+      .time-category-button ha-icon {
+        --mdc-icon-size: 18px;
+      }
+
       /* Individual chore card - optimized for tablet touch, ENTIRE ROW IS CLICKABLE */
       .chore-card {
         background: white;
@@ -1151,7 +1196,7 @@ class ChoremanderChildCard extends LitElement {
     if (!config.child_id) {
       throw new Error("Please define a child_id");
     }
-    this.config = {
+    const nextConfig = {
       time_category: "anytime",
       debug: false,
       default_sound: "coin",  // Default sound to use if chore doesn't specify one
@@ -1161,6 +1206,14 @@ class ChoremanderChildCard extends LitElement {
       chore_color: "default", // "default" for alternating colors, or a color value like "#ff6b9d"
       ...config,
     };
+    this.config = nextConfig;
+
+    // Sync active time category with config unless the user has already switched
+    const nextConfigCategory = nextConfig.time_category || "anytime";
+    if (this._activeTimeCategory == null || this._activeTimeCategory === this._configTimeCategory) {
+      this._activeTimeCategory = nextConfigCategory;
+    }
+    this._configTimeCategory = nextConfigCategory;
   }
 
   getCardSize() {
@@ -1226,10 +1279,11 @@ class ChoremanderChildCard extends LitElement {
 
     // Get chores for this child and time category
     const allChores = entity.attributes.chores || [];
+    const activeCategory = this._getActiveTimeCategory();
 
     // Log raw data for debugging assignment issues
     console.debug(
-      `[Choremander] Rendering card for child "${child.name}" (${child.id}), time_category="${this.config.time_category}"`,
+      `[Choremander] Rendering card for child "${child.name}" (${child.id}), time_category="${activeCategory}"`,
       `\n  Total chores in entity: ${allChores.length}`,
       `\n  Children in entity:`, children.map(c => ({id: c.id, name: c.name}))
     );
@@ -1237,6 +1291,7 @@ class ChoremanderChildCard extends LitElement {
     // DEBUG: Create debug info object for visible debugging
     const debugInfo = {
       configChildId: this.config.child_id,
+      activeTimeCategory: activeCategory,
       foundChildId: child.id,
       foundChildName: child.name,
       totalChores: allChores.length,
@@ -1249,7 +1304,7 @@ class ChoremanderChildCard extends LitElement {
     };
     console.log('[Choremander DEBUG]', JSON.stringify(debugInfo, null, 2));
 
-    const childChores = this._filterAndSortChores(allChores, child);
+    const childChores = this._filterAndSortChores(allChores, child, activeCategory);
 
     // Get today's completions for this child (with timezone-aware filtering as fallback)
     // The backend provides todays_completions, but we also apply client-side filtering
@@ -1335,15 +1390,16 @@ class ChoremanderChildCard extends LitElement {
         </div>
 
         <div class="chores-container" data-chore-color="${this.config.chore_color || 'default'}">
+          <div class="section-title">
+            <ha-icon icon="${this._getTimeCategoryIcon(activeCategory)}"></ha-icon>
+            ${this._getDynamicTitle(activeCategory)}
+          </div>
+          ${this._renderTimeCategoryFilters(activeCategory)}
           ${childChores.length === 0
             ? this._renderEmptyState()
-            : html`
-                <div class="section-title">
-                  <ha-icon icon="${this._getTimeCategoryIcon(this.config.time_category)}"></ha-icon>
-                  ${this._getDynamicTitle()}
-                </div>
-                ${childChoresSorted.map((chore, index) => this._renderChoreCard(chore, child, pointsIcon, todaysCompletions, index))}
-              `}
+            : childChoresSorted.map((chore, index) =>
+                this._renderChoreCard(chore, child, pointsIcon, todaysCompletions, index)
+              )}
         </div>
 
         ${this._celebrating ? this._renderCelebration() : ""}
@@ -1368,10 +1424,11 @@ class ChoremanderChildCard extends LitElement {
     `;
   }
 
-  _filterAndSortChores(chores, child) {
+  _filterAndSortChores(chores, child, activeCategory) {
     const childId = String(child.id || "");
     const childName = child.name;
     const choreOrder = child.chore_order || [];
+    const timeCategory = activeCategory || this.config.time_category || "anytime";
 
     // Debug logging to diagnose assignment filtering issues
     console.debug(
@@ -1383,8 +1440,8 @@ class ChoremanderChildCard extends LitElement {
     const filteredChores = chores.filter(chore => {
       // Check time category
       const matchesTime =
-        this.config.time_category === "all" ||
-        chore.time_category === this.config.time_category ||
+        timeCategory === "all" ||
+        chore.time_category === timeCategory ||
         chore.time_category === "anytime";
 
       // Check if chore is assigned to this child
@@ -1499,8 +1556,39 @@ class ChoremanderChildCard extends LitElement {
     return labels[category] || category;
   }
 
-  _getDynamicTitle() {
-    const category = this.config.time_category;
+  _getActiveTimeCategory() {
+    return this._activeTimeCategory || this.config.time_category || "anytime";
+  }
+
+  _setActiveTimeCategory(category) {
+    if (!category || this._activeTimeCategory === category) {
+      return;
+    }
+    this._activeTimeCategory = category;
+    this.requestUpdate();
+  }
+
+  _renderTimeCategoryFilters(activeCategory) {
+    const categories = ["morning", "afternoon", "evening", "night", "anytime", "all"];
+    return html`
+      <div class="time-category-filters" role="group" aria-label="Time category">
+        ${categories.map((category) => html`
+          <button
+            class="time-category-button ${activeCategory === category ? "active" : ""}"
+            @click="${() => this._setActiveTimeCategory(category)}"
+            title="${this._getTimeCategoryLabel(category)} chores"
+            aria-pressed="${activeCategory === category}"
+          >
+            <ha-icon icon="${this._getTimeCategoryIcon(category)}"></ha-icon>
+            ${this._getTimeCategoryLabel(category)}
+          </button>
+        `)}
+      </div>
+    `;
+  }
+
+  _getDynamicTitle(category) {
+    const normalizedCategory = category || this._getActiveTimeCategory();
     const titles = {
       morning: "Morning Chores",
       afternoon: "Afternoon Chores",
@@ -1509,7 +1597,7 @@ class ChoremanderChildCard extends LitElement {
       anytime: "Today's Chores",
       all: "Today's Chores",
     };
-    return titles[category] || "Today's Chores";
+    return titles[normalizedCategory] || "Today's Chores";
   }
 
   _getTimezone() {
