@@ -34,6 +34,12 @@ class ChoremanderRewardsCard extends LitElement {
     };
   }
 
+  constructor() {
+    super();
+    // Track any pending celebration cleanup timers so we can cancel them on detach
+    this._activeRewardCleanupTimers = [];
+  }
+
   static get styles() {
     return css`
       :host {
@@ -178,12 +184,85 @@ class ChoremanderRewardsCard extends LitElement {
       }
 
       .claim-button {
-        --mdc-theme-primary: var(--primary-color);
+        background: linear-gradient(135deg, var(--reward-purple) 0%, var(--reward-purple-light) 50%, var(--reward-gold) 100%);
+        color: #fff;
+        border: none;
+        border-radius: 999px;
+        padding: 6px 14px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        box-shadow: 0 3px 8px rgba(155, 89, 182, 0.4);
+        transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
       }
 
       .claim-button[disabled] {
         opacity: 0.5;
         cursor: not-allowed;
+        box-shadow: none;
+      }
+
+      .claim-button:not([disabled]):hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(155, 89, 182, 0.6);
+      }
+
+      .claim-button:not([disabled]):active {
+        transform: translateY(0);
+        box-shadow: 0 2px 6px rgba(155, 89, 182, 0.5);
+      }
+
+      /* Redeem celebration animation */
+      .reward-row.redeem-celebrate {
+        animation: reward-pop 0.6s ease-out;
+        position: relative;
+      }
+
+      .reward-row.redeem-celebrate::after {
+        content: "🎉 Reward redeemed! Great job!";
+        position: absolute;
+        left: 50%;
+        top: -10px;
+        transform: translate(-50%, -20px);
+        background: rgba(0, 0, 0, 0.75);
+        color: #fff;
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        white-space: nowrap;
+        pointer-events: none;
+        animation: reward-toast 1.2s ease-out forwards;
+        z-index: 2;
+      }
+
+      @keyframes reward-pop {
+        0% { transform: scale(0.97); }
+        40% { transform: scale(1.03); }
+        100% { transform: scale(1); }
+      }
+
+      @keyframes reward-toast {
+        0% {
+          opacity: 0;
+          transform: translate(-50%, -10px);
+        }
+        20% {
+          opacity: 1;
+          transform: translate(-50%, -18px);
+        }
+        80% {
+          opacity: 1;
+          transform: translate(-50%, -18px);
+        }
+        100% {
+          opacity: 0;
+          transform: translate(-50%, -26px);
+        }
       }
 
       /* Child assignment indicator */
@@ -804,17 +883,18 @@ class ChoremanderRewardsCard extends LitElement {
             : ""}
           
           <div class="reward-actions">
-            <mwc-button
+            <button
+              type="button"
               class="claim-button"
               ?disabled="${!canClaim}"
-              @click="${() => this._handleClaimReward(reward, claimChildId)}"
+              @click="${(event) => this._handleClaimReward(event, reward, claimChildId)}"
             >
               ${canClaim
-                ? "Redeem"
+                ? html`<span>Redeem</span>`
                 : !hasChildContext
-                  ? "Select child to redeem"
-                  : "Not enough points"}
-            </mwc-button>
+                  ? html`<span>Select child to redeem</span>`
+                  : html`<span>Not enough points</span>`}
+            </button>
           </div>
         </div>
         <div class="reward-icon-container">
@@ -937,7 +1017,7 @@ class ChoremanderRewardsCard extends LitElement {
     `;
   }
 
-  _handleClaimReward(reward, childId) {
+  _handleClaimReward(event, reward, childId) {
     if (!this.hass) {
       // Home Assistant not ready
       return;
@@ -952,13 +1032,71 @@ class ChoremanderRewardsCard extends LitElement {
       return;
     }
 
+    const button = event.currentTarget;
+    const rewardRow = button?.closest(".reward-row");
+
+    // Always start from a clean animation state
+    if (rewardRow) {
+      rewardRow.classList.remove("redeem-celebrate");
+    }
+
     // Fire the Choremander claim_reward service
-    this.hass.callService("choremander", "claim_reward", {
-      reward_id: reward.id,
-      child_id: childId,
-    }).catch((err) => {
-      console.error("[Choremander] Failed to claim reward", err);
-    });
+    // Track this specific cleanup timer so we can cancel it if needed
+    let cleanupTimeoutId = null;
+
+    this.hass
+      .callService("choremander", "claim_reward", {
+        reward_id: reward.id,
+        child_id: childId,
+      })
+      .then(() => {
+        // Play a quick celebration animation on the claimed reward row
+        if (rewardRow) {
+          // Force reflow so the animation can restart if claimed twice
+          // eslint-disable-next-line no-unused-expressions
+          rewardRow.offsetWidth;
+          rewardRow.classList.add("redeem-celebrate");
+
+          // Remove the class after the animation completes
+          cleanupTimeoutId = setTimeout(() => {
+            if (rewardRow && rewardRow.isConnected) {
+              rewardRow.classList.remove("redeem-celebrate");
+            }
+            if (this._activeRewardCleanupTimers && cleanupTimeoutId !== null) {
+              this._activeRewardCleanupTimers = this._activeRewardCleanupTimers.filter(
+                (id) => id !== cleanupTimeoutId,
+              );
+            }
+          }, 1300);
+          this._activeRewardCleanupTimers.push(cleanupTimeoutId);
+        }
+      })
+      .catch((err) => {
+        // Ensure we don't leave the row in a "celebrating" state on failure
+        if (rewardRow) {
+          rewardRow.classList.remove("redeem-celebrate");
+        }
+        if (cleanupTimeoutId !== null) {
+          clearTimeout(cleanupTimeoutId);
+          if (this._activeRewardCleanupTimers) {
+            this._activeRewardCleanupTimers = this._activeRewardCleanupTimers.filter(
+              (id) => id !== cleanupTimeoutId,
+            );
+          }
+        }
+        console.error("[Choremander] Failed to claim reward", err);
+      });
+  }
+
+  disconnectedCallback() {
+    // Clear any pending celebration cleanup timers when the card is removed
+    if (this._activeRewardCleanupTimers) {
+      this._activeRewardCleanupTimers.forEach((id) => clearTimeout(id));
+      this._activeRewardCleanupTimers = [];
+    }
+    if (super.disconnectedCallback) {
+      super.disconnectedCallback();
+    }
   }
 }
 
