@@ -170,6 +170,22 @@ class ChoremanderRewardsCard extends LitElement {
         line-height: 1.4;
       }
 
+      /* Claim / redeem button */
+      .reward-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 10px;
+      }
+
+      .claim-button {
+        --mdc-theme-primary: var(--primary-color);
+      }
+
+      .claim-button[disabled] {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
       /* Child assignment indicator */
       .assigned-children {
         display: flex;
@@ -739,6 +755,22 @@ class ChoremanderRewardsCard extends LitElement {
 
     const percentage = Math.min((currentStars / displayCost) * 100, 100);
 
+    // Determine which child (if any) we are claiming for.
+    // For clarity, we distinguish between "no child selected" vs "not enough points".
+    let claimChildId = null;
+    if (this.config.child_id) {
+      // Explicit child configured on the card
+      claimChildId = this.config.child_id;
+    } else if (!isJackpot && relevantChildren.length === 1) {
+      // For non-jackpot rewards, if there's only one relevant child, allow claiming for them.
+      // Jackpot rewards inherently involve multiple children, so they always require an explicit child_id.
+      claimChildId = relevantChildren[0].id;
+    }
+
+    const hasChildContext = !!claimChildId;
+    const hasEnoughPoints = currentStars >= displayCost;
+    const canClaim = hasChildContext && hasEnoughPoints;
+
     return html`
       <div class="reward-row ${isJackpot ? 'jackpot' : ''} ${isDynamicPricing ? 'dynamic' : ''}">
         <div class="cost-badge ${isDynamicPricing ? 'dynamic-cost' : ''}">
@@ -770,6 +802,20 @@ class ChoremanderRewardsCard extends LitElement {
                 </div>
               `
             : ""}
+          
+          <div class="reward-actions">
+            <mwc-button
+              class="claim-button"
+              ?disabled="${!canClaim}"
+              @click="${() => this._handleClaimReward(reward, claimChildId)}"
+            >
+              ${canClaim
+                ? "Redeem"
+                : !hasChildContext
+                  ? "Select child to redeem"
+                  : "Not enough points"}
+            </mwc-button>
+          </div>
         </div>
         <div class="reward-icon-container">
           <ha-icon icon="${rewardIcon}"></ha-icon>
@@ -889,6 +935,30 @@ class ChoremanderRewardsCard extends LitElement {
         </div>
       </div>
     `;
+  }
+
+  _handleClaimReward(reward, childId) {
+    if (!this.hass) {
+      // Home Assistant not ready
+      return;
+    }
+    if (!childId) {
+      // No child context to claim for
+      window.alert?.("Select a child for this card before redeeming a reward.");
+      return;
+    }
+    if (!reward || !reward.id) {
+      console.error("[Choremander] Reward is missing an id, cannot claim.", reward);
+      return;
+    }
+
+    // Fire the Choremander claim_reward service
+    this.hass.callService("choremander", "claim_reward", {
+      reward_id: reward.id,
+      child_id: childId,
+    }).catch((err) => {
+      console.error("[Choremander] Failed to claim reward", err);
+    });
   }
 }
 
