@@ -417,28 +417,25 @@ class ChoremanderChildCard extends LitElement {
     return css`
       :host {
         display: block;
-        --fun-pink: #ff6b9d;
-        --fun-purple: #9b59b6;
-        --fun-blue: #3498db;
-        --fun-green: #2ecc71;
-        --fun-yellow: #f1c40f;
-        --fun-orange: #e67e22;
-        --fun-red: #e74c3c;
-        --fun-cyan: #1abc9c;
+        /* Softer pastels (less neon / flatter look) */
+        --fun-pink: #f4a7b9;
+        --fun-purple: #c4b5fd;
+        --fun-blue: #93c5fd;
+        --fun-green: #86efac;
+        --fun-yellow: #fde68a;
+        --fun-orange: #fdba74;
+        --fun-red: #fca5a5;
+        --fun-cyan: #67e8f9;
         /* Uniform color variables - will be set dynamically */
         --uniform-chore-color: var(--fun-blue);
-        --uniform-chore-bg-light: #e3f2fd;
-        --uniform-chore-bg-dark: #bbdefb;
+        --uniform-chore-bg-light: #eff6ff;
+        --uniform-chore-bg-dark: #dbeafe;
       }
 
       ha-card {
         overflow: hidden;
         background: var(--ha-card-background, var(--card-background-color));
-        background-image: linear-gradient(
-          180deg,
-          rgba(255, 255, 255, 0.05) 0%,
-          rgba(255, 255, 255, 0.02) 100%
-        );
+        background-image: none;
         backdrop-filter: blur(14px);
         -webkit-backdrop-filter: blur(14px);
         border: 1px solid rgba(255, 255, 255, 0.10);
@@ -448,11 +445,7 @@ class ChoremanderChildCard extends LitElement {
       }
 
       ha-card[data-chore-color]:not([data-chore-color="default"]) {
-        background: linear-gradient(
-          180deg,
-          var(--uniform-chore-bg-light) 0%,
-          var(--uniform-chore-bg-dark) 100%
-        );
+        background: var(--uniform-chore-bg-light);
         box-shadow: 0 10px 26px rgba(0, 0, 0, 0.12);
         border: 1px solid rgba(255, 255, 255, 0.14);
       }
@@ -615,7 +608,8 @@ class ChoremanderChildCard extends LitElement {
       .stars-divider {
         width: 2px;
         height: 35px;
-        background: linear-gradient(to bottom, transparent, var(--divider-color, rgba(0, 0, 0, 0.18)), transparent);
+        background: var(--divider-color, rgba(0, 0, 0, 0.18));
+        opacity: 0.7;
         margin: 0 4px;
         flex-shrink: 0;
       }
@@ -864,14 +858,14 @@ class ChoremanderChildCard extends LitElement {
       }
 
       /* Cycle through fun colors for number badges */
-      .chore-number-badge.color-0 { background: linear-gradient(135deg, #ff6b9d 0%, #ff4081 100%); } /* Pink */
-      .chore-number-badge.color-1 { background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); } /* Blue */
-      .chore-number-badge.color-2 { background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); } /* Green */
-      .chore-number-badge.color-3 { background: linear-gradient(135deg, #e67e22 0%, #d35400 100%); } /* Orange */
-      .chore-number-badge.color-4 { background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); } /* Purple */
-      .chore-number-badge.color-5 { background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%); } /* Teal */
-      .chore-number-badge.color-6 { background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%); } /* Yellow */
-      .chore-number-badge.color-7 { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); } /* Red */
+      .chore-number-badge.color-0 { background: var(--fun-pink); } /* Pink */
+      .chore-number-badge.color-1 { background: var(--fun-blue); } /* Blue */
+      .chore-number-badge.color-2 { background: var(--fun-green); } /* Green */
+      .chore-number-badge.color-3 { background: var(--fun-orange); } /* Orange */
+      .chore-number-badge.color-4 { background: var(--fun-purple); } /* Purple */
+      .chore-number-badge.color-5 { background: var(--fun-cyan); } /* Cyan */
+      .chore-number-badge.color-6 { background: var(--fun-yellow); } /* Yellow */
+      .chore-number-badge.color-7 { background: var(--fun-red); } /* Red */
 
       /* Completed state for number badge */
       .chore-card.completed .chore-number-badge {
@@ -910,7 +904,7 @@ class ChoremanderChildCard extends LitElement {
       /* Checked state */
       .chore-card.completed .chore-checkbox {
         border-color: var(--fun-green);
-        background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+        background: var(--fun-green);
         box-shadow: 0 3px 10px rgba(46, 204, 113, 0.4);
       }
 
@@ -957,11 +951,8 @@ class ChoremanderChildCard extends LitElement {
       .chore-card.completed {
         opacity: 0.72;
         border-left-color: var(--fun-green) !important;
-        background-image: linear-gradient(
-          180deg,
-          rgba(46, 204, 113, 0.10) 0%,
-          rgba(46, 204, 113, 0.04) 100%
-        );
+        background-image: none;
+        background: rgba(255, 255, 255, 0.50);
         filter: saturate(0.9);
       }
 
@@ -1345,9 +1336,9 @@ class ChoremanderChildCard extends LitElement {
     // Set uniform color CSS variables if chore_color is specified
     if (this.config.chore_color && this.config.chore_color !== "default") {
       const color = this.config.chore_color;
-      // Create lighter and darker variants for the gradient
-      const lighterColor = this._lightenColor(color, 0.3);
-      const darkerColor = this._lightenColor(color, -0.1);
+      // Create soft tints (pastel column background) regardless of base saturation
+      const lighterColor = this._lightenColor(color, 0.68);
+      const darkerColor = this._lightenColor(color, 0.52);
       this.style.setProperty('--uniform-chore-color', color);
       this.style.setProperty('--uniform-chore-bg-light', lighterColor);
       this.style.setProperty('--uniform-chore-bg-dark', darkerColor);
@@ -2226,7 +2217,51 @@ class ChoremanderChildCardEditor extends LitElement {
         color: var(--secondary-text-color);
         font-size: 0.85em;
       }
+
+      .color-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .color-row input[type="color"] {
+        width: 44px;
+        height: 36px;
+        padding: 0;
+        border: 1px solid var(--divider-color);
+        border-radius: 8px;
+        background: transparent;
+      }
+
+      .color-row .hex-input {
+        flex: 1;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+
+      .inline-button {
+        border: 1px solid var(--divider-color);
+        background: var(--card-background-color);
+        color: var(--primary-text-color);
+        border-radius: 10px;
+        padding: 8px 10px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+
+      .inline-button:hover {
+        filter: brightness(1.03);
+      }
     `;
+  }
+
+  _isValidHexColor(value) {
+    return typeof value === "string" && /^#[0-9a-fA-F]{6}$/.test(value.trim());
+  }
+
+  _getEditorChoreColorValue() {
+    const value = this.config?.chore_color;
+    if (!value || value === "default") return "#93c5fd";
+    return this._isValidHexColor(value) ? value : "#93c5fd";
   }
 
   setConfig(config) {
@@ -2296,36 +2331,29 @@ class ChoremanderChildCardEditor extends LitElement {
 
       <div class="form-group">
         <label>Chore Color</label>
-        <select @change="${this._choreColorChanged}">
-          <option value="default" ?selected="${this.config.chore_color === "default" || !this.config.chore_color}">
-            Default (Alternating Colors)
-          </option>
-          <option value="#ff6b9d" ?selected="${this.config.chore_color === "#ff6b9d"}">
-            Pink
-          </option>
-          <option value="#9b59b6" ?selected="${this.config.chore_color === "#9b59b6"}">
-            Purple
-          </option>
-          <option value="#3498db" ?selected="${this.config.chore_color === "#3498db"}">
-            Blue
-          </option>
-          <option value="#2ecc71" ?selected="${this.config.chore_color === "#2ecc71"}">
-            Green
-          </option>
-          <option value="#f1c40f" ?selected="${this.config.chore_color === "#f1c40f"}">
-            Yellow
-          </option>
-          <option value="#e67e22" ?selected="${this.config.chore_color === "#e67e22"}">
-            Orange
-          </option>
-          <option value="#e74c3c" ?selected="${this.config.chore_color === "#e74c3c"}">
-            Red
-          </option>
-          <option value="#1abc9c" ?selected="${this.config.chore_color === "#1abc9c"}">
-            Teal
-          </option>
-        </select>
-        <small>Set the color for all chore rows, or use default alternating colors</small>
+        <div class="color-row">
+          <input
+            type="color"
+            .value="${this._getEditorChoreColorValue()}"
+            @input="${this._choreColorPicked}"
+            title="Pick a color"
+          />
+          <input
+            class="hex-input"
+            type="text"
+            .value="${this._getEditorChoreColorValue()}"
+            @input="${this._choreColorTextChanged}"
+            placeholder="#RRGGBB"
+            inputmode="text"
+            autocomplete="off"
+          />
+          <button class="inline-button" @click="${this._resetChoreColor}">
+            Default
+          </button>
+        </div>
+        <small>
+          Pick any color (best results are pastel). Click Default to return to alternating colors.
+        </small>
       </div>
 
       <div class="form-group">
@@ -2388,6 +2416,24 @@ class ChoremanderChildCardEditor extends LitElement {
 
   _choreColorChanged(e) {
     this._updateConfig("chore_color", e.target.value);
+  }
+
+  _choreColorPicked(e) {
+    const value = e.target.value;
+    if (this._isValidHexColor(value)) {
+      this._updateConfig("chore_color", value);
+    }
+  }
+
+  _choreColorTextChanged(e) {
+    const value = String(e.target.value || "").trim();
+    if (this._isValidHexColor(value)) {
+      this._updateConfig("chore_color", value);
+    }
+  }
+
+  _resetChoreColor() {
+    this._updateConfig("chore_color", "default");
   }
 
   _chorePaddingChanged(e) {
