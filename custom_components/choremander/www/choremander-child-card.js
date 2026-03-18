@@ -510,7 +510,7 @@ class ChoremanderChildCard extends LitElement {
       }
 
       .child-name {
-        font-size: clamp(1.05rem, 4vw, 1.6rem);
+        font-size: var(--child-name-font-size, clamp(1.05rem, 4vw, 1.6rem));
         font-weight: 650;
         color: var(--primary-text-color);
         overflow: hidden;
@@ -671,7 +671,7 @@ class ChoremanderChildCard extends LitElement {
         border: none;
         border-radius: 999px;
         padding: 8px 12px;
-        font-size: 0.9rem;
+        font-size: var(--time-category-filter-font-size, 0.9rem);
         font-weight: 650;
         cursor: pointer;
         color: var(--primary-text-color);
@@ -713,6 +713,7 @@ class ChoremanderChildCard extends LitElement {
         background: rgba(255, 255, 255, 0.04);
         color: var(--primary-text-color);
         font-weight: 650;
+        font-size: var(--time-category-header-font-size, 1rem);
         letter-spacing: 0.1px;
         border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.08));
       }
@@ -731,7 +732,7 @@ class ChoremanderChildCard extends LitElement {
         justify-content: center;
         border-radius: 999px;
         padding: 0 10px;
-        font-size: 0.85rem;
+        font-size: 0.85em;
         font-weight: 700;
         color: var(--primary-text-color);
         background: rgba(255, 255, 255, 0.06);
@@ -935,7 +936,7 @@ class ChoremanderChildCard extends LitElement {
       }
 
       .chore-name {
-        font-size: 1.15rem;
+        font-size: var(--chore-name-font-size, 1.15rem);
         font-weight: 550;
         letter-spacing: -0.01em;
         color: var(--primary-text-color);
@@ -946,13 +947,13 @@ class ChoremanderChildCard extends LitElement {
         display: flex;
         align-items: center;
         gap: 8px;
-        font-size: 1.05rem;
+        font-size: var(--chore-points-font-size, 1.05rem);
         color: var(--secondary-text-color);
         font-weight: 600;
       }
 
       .chore-points ha-icon {
-        --mdc-icon-size: 24px;
+        --mdc-icon-size: var(--chore-stars-icon-size, 24px);
         color: var(--warning-color, var(--fun-yellow));
       }
 
@@ -1202,7 +1203,7 @@ class ChoremanderChildCard extends LitElement {
         }
 
         .chore-name {
-          font-size: 1.3rem;
+          font-size: var(--chore-name-font-size, 1.3rem);
         }
       }
 
@@ -1261,11 +1262,11 @@ class ChoremanderChildCard extends LitElement {
         }
 
         .chore-name {
-          font-size: 1.7rem;
+          font-size: var(--chore-name-font-size, 1.7rem);
         }
 
         .chore-points {
-          font-size: 1.4rem;
+          font-size: var(--chore-points-font-size, 1.4rem);
         }
       }
 
@@ -1275,12 +1276,18 @@ class ChoremanderChildCard extends LitElement {
       .chore-card[line-size="small"] .chore-points {
         font-size: 0.8rem;
       }
+      .chore-card[line-size="small"] .chore-points ha-icon {
+        --mdc-icon-size: 18px;
+      }
 
       .chore-card[line-size="large"] .chore-name {
         font-size: 2rem;
       }
       .chore-card[line-size="large"] .chore-points {
         font-size: 1.5rem;
+      }
+      .chore-card[line-size="large"] .chore-points ha-icon {
+        --mdc-icon-size: 32px;
       }
     `;
   }
@@ -1298,6 +1305,10 @@ class ChoremanderChildCard extends LitElement {
       default_sound: "coin",  // Default sound to use if chore doesn't specify one
       undo_sound: "undo",     // Sound to play when undoing a completion
       line_size: "medium",
+      child_name_font_size: "default",
+      time_category_filter_font_size: "default",
+      time_category_header_font_size: "default",
+      chore_box_font_size: "default",
       chore_padding: "20px 24px",
       chore_color: "default", // "default" for alternating colors, or a color value like "#ff6b9d"
       height: null, // e.g. "420px", "60vh", or 420 (pixels)
@@ -1327,6 +1338,10 @@ class ChoremanderChildCard extends LitElement {
       child_id: "",
       time_category: "morning",
       chore_color: "default",
+      child_name_font_size: "default",
+      time_category_filter_font_size: "default",
+      time_category_header_font_size: "default",
+      chore_box_font_size: "default",
     };
   }
 
@@ -1341,7 +1356,7 @@ class ChoremanderChildCard extends LitElement {
       return html`
         <ha-card
           data-chore-color="${this.config?.chore_color || 'default'}"
-          style="${this._getCardHeightStyle()}"
+          style="${this._getCardHeightStyle()}${this._getFontSizeVarsStyle()}"
         >
           <div class="error-state">
             <ha-icon icon="mdi:alert-circle"></ha-icon>
@@ -1370,7 +1385,7 @@ class ChoremanderChildCard extends LitElement {
       return html`
         <ha-card
           data-chore-color="${this.config?.chore_color || 'default'}"
-          style="${this._getCardHeightStyle()}"
+          style="${this._getCardHeightStyle()}${this._getFontSizeVarsStyle()}"
         >
           <div class="error-state">
             <ha-icon icon="mdi:account-alert"></ha-icon>
@@ -1464,7 +1479,7 @@ class ChoremanderChildCard extends LitElement {
     return html`
       <ha-card
         data-chore-color="${this.config.chore_color || 'default'}"
-        style="${this._getCardHeightStyle()}"
+        style="${this._getCardHeightStyle()}${this._getFontSizeVarsStyle()}"
       >
         <div class="card-header">
           <div class="child-info">
@@ -1500,10 +1515,6 @@ class ChoremanderChildCard extends LitElement {
 
         <div class="card-body">
           <div class="chores-container" data-chore-color="${this.config.chore_color || 'default'}">
-            <div class="section-title">
-              <ha-icon icon="${this._getTimeCategoryIcon(activeCategory)}"></ha-icon>
-              ${this._getDynamicTitle(activeCategory)}
-            </div>
             ${this._renderTimeCategoryFilters(activeCategory)}
             ${childChores.length === 0
               ? this._renderEmptyState()
@@ -1548,6 +1559,100 @@ class ChoremanderChildCard extends LitElement {
     if (!s) return "";
     if (/^\d+(\.\d+)?$/.test(s)) return `height: ${s}px;`;
     return `height: ${s};`;
+  }
+
+  _getFontSizeVarsStyle() {
+    const parts = [];
+
+    const childNameSize = this._getChildNameFontSizeCss();
+    if (childNameSize) parts.push(`--child-name-font-size: ${childNameSize}`);
+
+    const filterButtonSize = this._getTimeCategoryFilterFontSizeCss();
+    if (filterButtonSize) parts.push(`--time-category-filter-font-size: ${filterButtonSize}`);
+
+    const headerSize = this._getTimeCategoryHeaderFontSizeCss();
+    if (headerSize) parts.push(`--time-category-header-font-size: ${headerSize}`);
+
+    const choreBoxVars = this._getChoreBoxFontSizeVarsStyle();
+    if (choreBoxVars) parts.push(choreBoxVars);
+
+    return parts.length ? `${parts.join(";")};` : "";
+  }
+
+  _getChoreBoxFontSizeVarsStyle() {
+    const raw = this.config?.chore_box_font_size;
+    if (!raw || raw === "default") return "";
+
+    const num = this._parseNumericFontSizePx(raw);
+    if (num == null) return "";
+
+    // Interpret the number as "chore name font size in px", then derive stars/points/icon.
+    const namePx = num;
+    const pointsPx = Math.max(1, Math.round(namePx * 0.92));
+    const iconPx = Math.max(1, Math.round(pointsPx * 1.1));
+
+    return `--chore-name-font-size: ${namePx}px;--chore-points-font-size: ${pointsPx}px;--chore-stars-icon-size: ${iconPx}px`;
+  }
+
+  _parseNumericFontSizePx(value) {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value !== "string") return null;
+
+    const s = value.trim().toLowerCase();
+    if (!s || s === "default") return null;
+
+    const pxMatch = s.match(/^(-?\\d+(?:\\.\\d+)?)px$/);
+    if (pxMatch) return Number(pxMatch[1]);
+
+    const numMatch = s.match(/^-?\\d+(?:\\.\\d+)?$/);
+    if (numMatch) return Number(s);
+
+    return null;
+  }
+
+  _getChildNameFontSizeCss() {
+    const size = this.config?.child_name_font_size;
+    if (!size || size === "default") return null;
+
+    const numericPx = this._parseNumericFontSizePx(size);
+    if (numericPx != null) return `${numericPx}px`;
+
+    const map = {
+      small: "clamp(0.9rem, 3vw, 1.25rem)",
+      medium: "clamp(1.05rem, 4vw, 1.6rem)", // current default
+      large: "clamp(1.2rem, 5vw, 2.1rem)",
+    };
+    return map[size] || null;
+  }
+
+  _getTimeCategoryFilterFontSizeCss() {
+    const size = this.config?.time_category_filter_font_size;
+    if (!size || size === "default") return null;
+
+    const numericPx = this._parseNumericFontSizePx(size);
+    if (numericPx != null) return `${numericPx}px`;
+
+    const map = {
+      small: "0.75rem",
+      medium: "0.9rem", // current default
+      large: "1.05rem",
+    };
+    return map[size] || null;
+  }
+
+  _getTimeCategoryHeaderFontSizeCss() {
+    const size = this.config?.time_category_header_font_size;
+    if (!size || size === "default") return null;
+
+    const numericPx = this._parseNumericFontSizePx(size);
+    if (numericPx != null) return `${numericPx}px`;
+
+    const map = {
+      small: "0.85rem",
+      medium: "1rem",
+      large: "1.15rem",
+    };
+    return map[size] || null;
   }
 
   _getNormalizedTimeCategory(chore) {
@@ -1904,13 +2009,18 @@ class ChoremanderChildCard extends LitElement {
       }
     };
 
+    // When chore box font size is explicitly overridden, disable small/large presets.
+    // (The font-size rules for small/large would otherwise override our CSS variables.)
+    const hasChoreBoxOverride = this._parseNumericFontSizePx(this.config?.chore_box_font_size) != null;
+    const effectiveLineSize = hasChoreBoxOverride ? "medium" : this.config.line_size;
+
     return html`
       <div
         class="chore-card ${isLoading ? "loading" : ""} ${isCelebrating ? "celebrating" : ""} ${isCompletedForToday ? "completed" : ""}"
         @click="${handleRowClick}"
         title="${isCompletedForToday ? 'Click to undo' : 'Click to complete'}"
         data-chore-color="${this.config.chore_color || 'default'}"
-        line-size="${this.config.line_size}"
+        line-size="${effectiveLineSize}"
         style="padding: ${this.config.chore_padding};"
       >
         <div class="chore-info">
@@ -2300,6 +2410,21 @@ class ChoremanderChildCardEditor extends LitElement {
     return this._isValidHexColor(value) ? value : "#93c5fd";
   }
 
+  _getNumericFontSizeInputValue(value) {
+    if (value === undefined || value === null) return "";
+    const s = String(value).trim().toLowerCase();
+    if (!s || s === "default") return "";
+
+    const pxMatch = s.match(/^(-?\\d+(?:\\.\\d+)?)px$/);
+    if (pxMatch) {
+      const n = Number(pxMatch[1]);
+      return Number.isFinite(n) ? n : "";
+    }
+
+    const n = Number(s);
+    return Number.isFinite(n) ? n : "";
+  }
+
   setConfig(config) {
     this.config = config;
   }
@@ -2366,6 +2491,45 @@ class ChoremanderChildCardEditor extends LitElement {
       </div>
 
       <div class="form-group">
+        <label>Child Name Font Size</label>
+        <input
+          type="number"
+          min="1"
+          step="1"
+          .value="${this._getNumericFontSizeInputValue(this.config.child_name_font_size)}"
+          @input="${this._childNameFontSizeChanged}"
+          placeholder="Default (px)"
+        />
+        <small>Font size for the child name in the header</small>
+      </div>
+
+      <div class="form-group">
+        <label>Time Category Button Font Size</label>
+        <input
+          type="number"
+          min="1"
+          step="1"
+          .value="${this._getNumericFontSizeInputValue(this.config.time_category_filter_font_size)}"
+          @input="${this._timeCategoryFilterFontSizeChanged}"
+          placeholder="Default (px)"
+        />
+        <small>Font size for the morning/afternoon/etc filter buttons</small>
+      </div>
+
+      <div class="form-group">
+        <label>Time Category Header Font Size</label>
+        <input
+          type="number"
+          min="1"
+          step="1"
+          .value="${this._getNumericFontSizeInputValue(this.config.time_category_header_font_size)}"
+          @input="${this._timeCategoryHeaderFontSizeChanged}"
+          placeholder="Default (px)"
+        />
+        <small>Font size for the grouped time category headers</small>
+      </div>
+
+      <div class="form-group">
         <label>Chore Color</label>
         <div class="color-row">
           <input
@@ -2393,19 +2557,18 @@ class ChoremanderChildCardEditor extends LitElement {
       </div>
 
       <div class="form-group">
-        <label>Line Size</label>
-        <select @change="${this._lineSizeChanged}">
-          <option value="small" ?selected="${this.config.line_size === "small"}">
-            Small
-          </option>
-          <option value="medium" ?selected="${this.config.line_size === "medium" || !this.config.line_size}">
-            Medium
-          </option>
-          <option value="large" ?selected="${this.config.line_size === "large"}">
-            Large
-          </option>
-        </select>
-        <small>Set the font size for chore names and points</small>
+        <label>Chore Box Font Size</label>
+        <input
+          type="number"
+          min="1"
+          step="1"
+          .value="${this._getNumericFontSizeInputValue(this.config.chore_box_font_size)}"
+          @input="${this._choreBoxFontSizeChanged}"
+          placeholder="Default (px)"
+        />
+        <small>
+          Overrides the chore box text/stars size when set. (Leaves `line_size` behavior unchanged when blank.)
+        </small>
       </div>
 
       <div class="form-group">
@@ -2458,6 +2621,22 @@ class ChoremanderChildCardEditor extends LitElement {
 
   _timeCategoryChanged(e) {
     this._updateConfig("time_category", e.target.value);
+  }
+
+  _childNameFontSizeChanged(e) {
+    this._updateConfig("child_name_font_size", e.target.value);
+  }
+
+  _timeCategoryFilterFontSizeChanged(e) {
+    this._updateConfig("time_category_filter_font_size", e.target.value);
+  }
+
+  _timeCategoryHeaderFontSizeChanged(e) {
+    this._updateConfig("time_category_header_font_size", e.target.value);
+  }
+
+  _choreBoxFontSizeChanged(e) {
+    this._updateConfig("chore_box_font_size", e.target.value);
   }
 
   _lineSizeChanged(e) {
