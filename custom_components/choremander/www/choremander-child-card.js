@@ -1355,7 +1355,7 @@ class ChoremanderChildCard extends LitElement {
     if (!entity) {
       return html`
         <ha-card
-          data-chore-color="${this.config?.chore_color || 'default'}"
+          data-chore-color="${(this.config && this.config.chore_color) || 'default'}"
           style="${this._getCardHeightStyle()}${this._getFontSizeVarsStyle()}"
         >
           <div class="error-state">
@@ -1384,7 +1384,7 @@ class ChoremanderChildCard extends LitElement {
     if (!child) {
       return html`
         <ha-card
-          data-chore-color="${this.config?.chore_color || 'default'}"
+          data-chore-color="${(this.config && this.config.chore_color) || 'default'}"
           style="${this._getCardHeightStyle()}${this._getFontSizeVarsStyle()}"
         >
           <div class="error-state">
@@ -1459,10 +1459,10 @@ class ChoremanderChildCard extends LitElement {
 
     // Get child entity for avatar
     const childEntityId = Object.keys(this.hass.states).find(
-      eid => this.hass.states[eid].attributes?.child_id === this.config.child_id
+      eid => (this.hass.states[eid].attributes && this.hass.states[eid].attributes.child_id) === this.config.child_id
     );
     const childEntity = childEntityId ? this.hass.states[childEntityId] : null;
-    const avatar = childEntity?.attributes?.avatar || "mdi:account-circle";
+    const avatar = (childEntity && childEntity.attributes && childEntity.attributes.avatar) || "mdi:account-circle";
 
     // Get pending points for this child
     const pendingPoints = child.pending_points || 0;
@@ -1533,12 +1533,12 @@ class ChoremanderChildCard extends LitElement {
             <div style="margin-top: 20px; padding: 10px; background: #333; color: #0f0; font-family: monospace; font-size: 11px; border-radius: 8px;">
               <div><strong>DEBUG INFO:</strong></div>
               <div>Config child_id: "${this.config.child_id}"</div>
-              <div>Found child.id: "${this._debugInfo?.foundChildId}"</div>
-              <div>Found child.name: "${this._debugInfo?.foundChildName}"</div>
-              <div>Total chores: ${this._debugInfo?.totalChores}</div>
-              <div>Filtered chores: ${this._debugInfo?.filteredCount}</div>
+              <div>Found child.id: "${this._debugInfo && this._debugInfo.foundChildId}"</div>
+              <div>Found child.name: "${this._debugInfo && this._debugInfo.foundChildName}"</div>
+              <div>Total chores: ${this._debugInfo && this._debugInfo.totalChores}</div>
+              <div>Filtered chores: ${this._debugInfo && this._debugInfo.filteredCount}</div>
               <div style="margin-top: 5px;"><strong>Sample chores assigned_to:</strong></div>
-              ${(this._debugInfo?.sampleChores || []).map(c => html`
+              ${(this._debugInfo && this._debugInfo.sampleChores ? this._debugInfo.sampleChores : []).map(c => html`
                 <div>- ${c.name}: ${JSON.stringify(c.assigned_to)} (isArray: ${c.isArray})</div>
               `)}
             </div>
@@ -1552,7 +1552,7 @@ class ChoremanderChildCard extends LitElement {
   }
 
   _getCardHeightStyle() {
-    const h = this.config?.height;
+    const h = this.config ? this.config.height : undefined;
     if (h == null || h === "") return "";
     if (typeof h === "number" && Number.isFinite(h)) return `height: ${h}px;`;
     const s = String(h).trim();
@@ -1580,7 +1580,7 @@ class ChoremanderChildCard extends LitElement {
   }
 
   _getChoreBoxFontSizeVarsStyle() {
-    const raw = this.config?.chore_box_font_size;
+    const raw = this.config ? this.config.chore_box_font_size : undefined;
     if (!raw || raw === "default") return "";
 
     const num = this._parseNumericFontSizePx(raw);
@@ -1601,17 +1601,17 @@ class ChoremanderChildCard extends LitElement {
     const s = value.trim().toLowerCase();
     if (!s || s === "default") return null;
 
-    const pxMatch = s.match(/^(-?\\d+(?:\\.\\d+)?)px$/);
+    const pxMatch = s.match(/^(-?\d+(?:\.\d+)?)px$/);
     if (pxMatch) return Number(pxMatch[1]);
 
-    const numMatch = s.match(/^-?\\d+(?:\\.\\d+)?$/);
+    const numMatch = s.match(/^-?\d+(?:\.\d+)?$/);
     if (numMatch) return Number(s);
 
     return null;
   }
 
   _getChildNameFontSizeCss() {
-    const size = this.config?.child_name_font_size;
+    const size = this.config ? this.config.child_name_font_size : undefined;
     if (!size || size === "default") return null;
 
     const numericPx = this._parseNumericFontSizePx(size);
@@ -1626,7 +1626,7 @@ class ChoremanderChildCard extends LitElement {
   }
 
   _getTimeCategoryFilterFontSizeCss() {
-    const size = this.config?.time_category_filter_font_size;
+    const size = this.config ? this.config.time_category_filter_font_size : undefined;
     if (!size || size === "default") return null;
 
     const numericPx = this._parseNumericFontSizePx(size);
@@ -1641,7 +1641,7 @@ class ChoremanderChildCard extends LitElement {
   }
 
   _getTimeCategoryHeaderFontSizeCss() {
-    const size = this.config?.time_category_header_font_size;
+    const size = this.config ? this.config.time_category_header_font_size : undefined;
     if (!size || size === "default") return null;
 
     const numericPx = this._parseNumericFontSizePx(size);
@@ -1656,7 +1656,7 @@ class ChoremanderChildCard extends LitElement {
   }
 
   _getNormalizedTimeCategory(chore) {
-    const category = String(chore?.time_category || "").trim().toLowerCase();
+    const category = String((chore && chore.time_category) || "").trim().toLowerCase();
     const known = new Set(["morning", "afternoon", "evening", "night", "anytime"]);
     if (known.has(category)) return category;
     // Unknown/missing categories get treated as anytime so they still show up.
@@ -1887,7 +1887,7 @@ class ChoremanderChildCard extends LitElement {
 
   _getTimezone() {
     // Get timezone from Home Assistant config, fallback to browser timezone
-    return this.hass?.config?.time_zone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return (this.hass && this.hass.config && this.hass.config.time_zone) || Intl.DateTimeFormat().resolvedOptions().timeZone;
   }
 
   _getDatePartsInTimezone(date) {
@@ -2011,7 +2011,7 @@ class ChoremanderChildCard extends LitElement {
 
     // When chore box font size is explicitly overridden, disable small/large presets.
     // (The font-size rules for small/large would otherwise override our CSS variables.)
-    const hasChoreBoxOverride = this._parseNumericFontSizePx(this.config?.chore_box_font_size) != null;
+    const hasChoreBoxOverride = this._parseNumericFontSizePx(this.config ? this.config.chore_box_font_size : undefined) != null;
     const effectiveLineSize = hasChoreBoxOverride ? "medium" : this.config.line_size;
 
     return html`
@@ -2076,11 +2076,11 @@ class ChoremanderChildCard extends LitElement {
 
   _renderCelebration() {
     const entity = this.hass.states[this.config.entity];
-    const pointsIcon = entity?.attributes?.points_icon || "mdi:star";
-    const celebratingChore = (entity?.attributes?.chores || []).find(
+    const pointsIcon = (entity && entity.attributes && entity.attributes.points_icon) || "mdi:star";
+    const celebratingChore = ((entity && entity.attributes && entity.attributes.chores) || []).find(
       c => c.id === this._celebrating
     );
-    const points = celebratingChore?.points || 0;
+    const points = (celebratingChore && celebratingChore.points) || 0;
 
     return html`
       <div class="celebration-overlay" @click="${this._closeCelebration}">
@@ -2131,7 +2131,7 @@ class ChoremanderChildCard extends LitElement {
 
     // Get current completion count including optimistic completions
     const entity = this.hass.states[this.config.entity];
-    const allCompletions = entity?.attributes?.todays_completions || [];
+    const allCompletions = (entity && entity.attributes && entity.attributes.todays_completions) || [];
     const todaysCompletions = this._filterCompletionsForToday(allCompletions);
     const actualCompletionsToday = todaysCompletions.filter(
       (comp) => comp.chore_id === chore.id && comp.child_id === child.id
@@ -2139,7 +2139,7 @@ class ChoremanderChildCard extends LitElement {
 
     // Count existing optimistic completions for this chore/child
     const existingData = this._optimisticCompletions[key];
-    const existingOptimisticCount = existingData?.count || 0;
+    const existingOptimisticCount = (existingData && existingData.count) || 0;
 
     // Calculate total completions (actual + optimistic)
     // This is a simplified count - we're being defensive and not trying to dedupe
@@ -2158,7 +2158,7 @@ class ChoremanderChildCard extends LitElement {
     // IMMEDIATELY set optimistic completion BEFORE making the service call
     // This prevents double-clicks even if the button hasn't re-rendered yet
     const now = Date.now();
-    const existingTimestamps = existingData?.timestamps || [];
+    const existingTimestamps = (existingData && existingData.timestamps) || [];
     this._optimisticCompletions = {
       ...this._optimisticCompletions,
       [key]: {
@@ -2253,7 +2253,8 @@ class ChoremanderChildCard extends LitElement {
 
     const completionToUndo = sortedCompletions[0];
     // Check for completion_id (from sensor) or id (fallback)
-    const completionId = completionToUndo?.completion_id || completionToUndo?.id;
+    const completionId =
+      (completionToUndo && completionToUndo.completion_id) || (completionToUndo && completionToUndo.id);
     if (!completionToUndo || !completionId) {
       console.warn(`[Choremander] No completion found to undo for chore "${chore.name}"`, sortedCompletions);
       return;
@@ -2405,7 +2406,7 @@ class ChoremanderChildCardEditor extends LitElement {
   }
 
   _getEditorChoreColorValue() {
-    const value = this.config?.chore_color;
+    const value = this.config ? this.config.chore_color : undefined;
     if (!value || value === "default") return "#93c5fd";
     return this._isValidHexColor(value) ? value : "#93c5fd";
   }
@@ -2415,7 +2416,7 @@ class ChoremanderChildCardEditor extends LitElement {
     const s = String(value).trim().toLowerCase();
     if (!s || s === "default") return "";
 
-    const pxMatch = s.match(/^(-?\\d+(?:\\.\\d+)?)px$/);
+    const pxMatch = s.match(/^(-?\d+(?:\.\d+)?)px$/);
     if (pxMatch) {
       const n = Number(pxMatch[1]);
       return Number.isFinite(n) ? n : "";
@@ -2436,7 +2437,7 @@ class ChoremanderChildCardEditor extends LitElement {
 
     // Get children from overview entity
     const overviewEntity = this.hass.states[this.config.entity];
-    const children = overviewEntity?.attributes?.children || [];
+    const children = (overviewEntity && overviewEntity.attributes && overviewEntity.attributes.children) || [];
 
     return html`
       <div class="form-group">
@@ -2567,7 +2568,7 @@ class ChoremanderChildCardEditor extends LitElement {
           placeholder="Default (px)"
         />
         <small>
-          Overrides the chore box text/stars size when set. (Leaves `line_size` behavior unchanged when blank.)
+          Overrides the chore box text/stars size when set. (Leaves 'line_size' behavior unchanged when blank.)
         </small>
       </div>
 
