@@ -442,6 +442,15 @@ class ChoremanderChildCard extends LitElement {
         border-radius: 24px;
         box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
         padding: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .card-body {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        min-height: 0; /* allow inner scroller to size correctly */
       }
 
       ha-card[data-chore-color]:not([data-chore-color="default"]) {
@@ -622,6 +631,11 @@ class ChoremanderChildCard extends LitElement {
         gap: 14px;
         background: transparent;
         min-height: 200px;
+        flex: 1 1 auto;
+        min-height: 0; /* allow flex child to scroll */
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
       }
 
       .chores-container[data-chore-color]:not([data-chore-color="default"]) {
@@ -1286,6 +1300,7 @@ class ChoremanderChildCard extends LitElement {
       line_size: "medium",
       chore_padding: "20px 24px",
       chore_color: "default", // "default" for alternating colors, or a color value like "#ff6b9d"
+      height: null, // e.g. "420px", "60vh", or 420 (pixels)
       ...config,
     };
     this.config = nextConfig;
@@ -1324,7 +1339,10 @@ class ChoremanderChildCard extends LitElement {
 
     if (!entity) {
       return html`
-        <ha-card data-chore-color="${this.config?.chore_color || 'default'}">
+        <ha-card
+          data-chore-color="${this.config?.chore_color || 'default'}"
+          style="${this._getCardHeightStyle()}"
+        >
           <div class="error-state">
             <ha-icon icon="mdi:alert-circle"></ha-icon>
             <div>Entity not found: ${this.config.entity}</div>
@@ -1350,7 +1368,10 @@ class ChoremanderChildCard extends LitElement {
 
     if (!child) {
       return html`
-        <ha-card data-chore-color="${this.config?.chore_color || 'default'}">
+        <ha-card
+          data-chore-color="${this.config?.chore_color || 'default'}"
+          style="${this._getCardHeightStyle()}"
+        >
           <div class="error-state">
             <ha-icon icon="mdi:account-alert"></ha-icon>
             <div>Child not found: ${this.config.child_id}</div>
@@ -1441,7 +1462,10 @@ class ChoremanderChildCard extends LitElement {
     }
 
     return html`
-      <ha-card data-chore-color="${this.config.chore_color || 'default'}">
+      <ha-card
+        data-chore-color="${this.config.chore_color || 'default'}"
+        style="${this._getCardHeightStyle()}"
+      >
         <div class="card-header">
           <div class="child-info">
             <div class="avatar-container">
@@ -1474,44 +1498,56 @@ class ChoremanderChildCard extends LitElement {
           </div>
         </div>
 
-        <div class="chores-container" data-chore-color="${this.config.chore_color || 'default'}">
-          <div class="section-title">
-            <ha-icon icon="${this._getTimeCategoryIcon(activeCategory)}"></ha-icon>
-            ${this._getDynamicTitle(activeCategory)}
+        <div class="card-body">
+          <div class="chores-container" data-chore-color="${this.config.chore_color || 'default'}">
+            <div class="section-title">
+              <ha-icon icon="${this._getTimeCategoryIcon(activeCategory)}"></ha-icon>
+              ${this._getDynamicTitle(activeCategory)}
+            </div>
+            ${this._renderTimeCategoryFilters(activeCategory)}
+            ${childChores.length === 0
+              ? this._renderEmptyState()
+              : this._renderChoresByTimeCategory({
+                  activeCategory,
+                  chores: childChoresSorted,
+                  child,
+                  pointsIcon,
+                  todaysCompletions,
+                  sortDoneLast,
+                })}
           </div>
-          ${this._renderTimeCategoryFilters(activeCategory)}
-          ${childChores.length === 0
-            ? this._renderEmptyState()
-            : this._renderChoresByTimeCategory({
-                activeCategory,
-                chores: childChoresSorted,
-                child,
-                pointsIcon,
-                todaysCompletions,
-                sortDoneLast,
-              })}
+
+          ${this.config.debug === true ? html`
+            <!-- DEBUG PANEL -->
+            <div style="margin-top: 20px; padding: 10px; background: #333; color: #0f0; font-family: monospace; font-size: 11px; border-radius: 8px;">
+              <div><strong>DEBUG INFO:</strong></div>
+              <div>Config child_id: "${this.config.child_id}"</div>
+              <div>Found child.id: "${this._debugInfo?.foundChildId}"</div>
+              <div>Found child.name: "${this._debugInfo?.foundChildName}"</div>
+              <div>Total chores: ${this._debugInfo?.totalChores}</div>
+              <div>Filtered chores: ${this._debugInfo?.filteredCount}</div>
+              <div style="margin-top: 5px;"><strong>Sample chores assigned_to:</strong></div>
+              ${(this._debugInfo?.sampleChores || []).map(c => html`
+                <div>- ${c.name}: ${JSON.stringify(c.assigned_to)} (isArray: ${c.isArray})</div>
+              `)}
+            </div>
+          ` : ""}
         </div>
 
         ${this._celebrating ? this._renderCelebration() : ""}
         ${this._confetti.length > 0 ? this._renderConfetti() : ""}
-
-        ${this.config.debug === true ? html`
-          <!-- DEBUG PANEL -->
-          <div style="margin-top: 20px; padding: 10px; background: #333; color: #0f0; font-family: monospace; font-size: 11px; border-radius: 8px;">
-            <div><strong>DEBUG INFO:</strong></div>
-            <div>Config child_id: "${this.config.child_id}"</div>
-            <div>Found child.id: "${this._debugInfo?.foundChildId}"</div>
-            <div>Found child.name: "${this._debugInfo?.foundChildName}"</div>
-            <div>Total chores: ${this._debugInfo?.totalChores}</div>
-            <div>Filtered chores: ${this._debugInfo?.filteredCount}</div>
-            <div style="margin-top: 5px;"><strong>Sample chores assigned_to:</strong></div>
-            ${(this._debugInfo?.sampleChores || []).map(c => html`
-              <div>- ${c.name}: ${JSON.stringify(c.assigned_to)} (isArray: ${c.isArray})</div>
-            `)}
-          </div>
-        ` : ""}
       </ha-card>
     `;
+  }
+
+  _getCardHeightStyle() {
+    const h = this.config?.height;
+    if (h == null || h === "") return "";
+    if (typeof h === "number" && Number.isFinite(h)) return `height: ${h}px;`;
+    const s = String(h).trim();
+    if (!s) return "";
+    if (/^\d+(\.\d+)?$/.test(s)) return `height: ${s}px;`;
+    return `height: ${s};`;
   }
 
   _getNormalizedTimeCategory(chore) {
@@ -2384,6 +2420,20 @@ class ChoremanderChildCardEditor extends LitElement {
       </div>
 
       <div class="form-group">
+        <label>Card Height</label>
+        <input
+          type="text"
+          .value="${this.config.height || ""}"
+          @input="${this._heightChanged}"
+          placeholder='e.g., 420px, 60vh, or 420'
+        />
+        <small>
+          Optional. Sets a fixed height for the entire card. If there are more chores than can fit,
+          the chores area will scroll inside the card.
+        </small>
+      </div>
+
+      <div class="form-group">
         <label>
           <input
             type="checkbox"
@@ -2438,6 +2488,10 @@ class ChoremanderChildCardEditor extends LitElement {
 
   _chorePaddingChanged(e) {
     this._updateConfig("chore_padding", e.target.value);
+  }
+
+  _heightChanged(e) {
+    this._updateConfig("height", e.target.value);
   }
 
   _debugChanged(e) {
