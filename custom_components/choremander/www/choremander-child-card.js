@@ -1336,12 +1336,12 @@ class ChoremanderChildCard extends LitElement {
     // Set uniform color CSS variables if chore_color is specified
     if (this.config.chore_color && this.config.chore_color !== "default") {
       const color = this.config.chore_color;
-      // Create soft tints (pastel column background) regardless of base saturation
-      const lighterColor = this._lightenColor(color, 0.68);
-      const darkerColor = this._lightenColor(color, 0.52);
-      this.style.setProperty('--uniform-chore-color', color);
-      this.style.setProperty('--uniform-chore-bg-light', lighterColor);
-      this.style.setProperty('--uniform-chore-bg-dark', darkerColor);
+      // Use the picked color directly for the column background,
+      // and derive subtle variants for inner tiles/borders via CSS.
+      const slightlyDarker = this._lightenColor(color, -0.06);
+      this.style.setProperty("--uniform-chore-color", color);
+      this.style.setProperty("--uniform-chore-bg-light", color);
+      this.style.setProperty("--uniform-chore-bg-dark", slightlyDarker);
     }
 
     // Get child info
