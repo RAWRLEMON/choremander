@@ -447,6 +447,16 @@ class ChoremanderChildCard extends LitElement {
         padding: 0;
       }
 
+      ha-card[data-chore-color]:not([data-chore-color="default"]) {
+        background: linear-gradient(
+          180deg,
+          var(--uniform-chore-bg-light) 0%,
+          var(--uniform-chore-bg-dark) 100%
+        );
+        box-shadow: 0 10px 26px rgba(0, 0, 0, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+      }
+
       /* Header with child avatar and points */
       .card-header {
         display: flex;
@@ -620,6 +630,10 @@ class ChoremanderChildCard extends LitElement {
         min-height: 200px;
       }
 
+      .chores-container[data-chore-color]:not([data-chore-color="default"]) {
+        background: rgba(255, 255, 255, 0.10);
+      }
+
       .section-title {
         font-size: 1.25rem;
         font-weight: 650;
@@ -734,7 +748,7 @@ class ChoremanderChildCard extends LitElement {
         gap: 16px;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
         border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.08));
-        border-left: 5px solid var(--fun-blue);
+        border-left: 0;
         transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.18s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         overflow: hidden;
@@ -750,24 +764,37 @@ class ChoremanderChildCard extends LitElement {
 
       /* Default alternating colors */
       .chore-card[data-chore-color="default"]:nth-child(odd) {
-        border-left-color: var(--fun-blue);
+        border-left: 0;
       }
 
       .chore-card[data-chore-color="default"]:nth-child(even) {
-        border-left-color: var(--fun-pink);
+        border-left: 0;
       }
 
       .chore-card[data-chore-color="default"]:nth-child(3n) {
-        border-left-color: var(--fun-green);
+        border-left: 0;
       }
 
       .chore-card[data-chore-color="default"]:nth-child(4n) {
-        border-left-color: var(--fun-orange);
+        border-left: 0;
       }
 
       /* Uniform color mode */
       .chore-card[data-chore-color]:not([data-chore-color="default"]) {
-        border-left-color: var(--uniform-chore-color);
+        border-left: 0;
+      }
+
+      .chores-container[data-chore-color]:not([data-chore-color="default"]) .chore-card {
+        background: rgba(255, 255, 255, 0.55);
+        border-color: rgba(255, 255, 255, 0.20);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+      }
+
+      @supports (background: color-mix(in srgb, white 50%, black)) {
+        .chores-container[data-chore-color]:not([data-chore-color="default"]) .chore-card {
+          background: color-mix(in srgb, var(--uniform-chore-bg-light) 30%, white);
+          border-color: color-mix(in srgb, var(--uniform-chore-bg-dark) 14%, rgba(255, 255, 255, 0.55));
+        }
       }
 
       /* Touch/hover feedback - works for both touch and mouse */
@@ -1306,7 +1333,7 @@ class ChoremanderChildCard extends LitElement {
 
     if (!entity) {
       return html`
-        <ha-card>
+        <ha-card data-chore-color="${this.config?.chore_color || 'default'}">
           <div class="error-state">
             <ha-icon icon="mdi:alert-circle"></ha-icon>
             <div>Entity not found: ${this.config.entity}</div>
@@ -1332,7 +1359,7 @@ class ChoremanderChildCard extends LitElement {
 
     if (!child) {
       return html`
-        <ha-card>
+        <ha-card data-chore-color="${this.config?.chore_color || 'default'}">
           <div class="error-state">
             <ha-icon icon="mdi:account-alert"></ha-icon>
             <div>Child not found: ${this.config.child_id}</div>
@@ -1423,7 +1450,7 @@ class ChoremanderChildCard extends LitElement {
     }
 
     return html`
-      <ha-card>
+      <ha-card data-chore-color="${this.config.chore_color || 'default'}">
         <div class="card-header">
           <div class="child-info">
             <div class="avatar-container">
