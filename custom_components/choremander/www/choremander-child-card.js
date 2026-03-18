@@ -666,6 +666,51 @@ class ChoremanderChildCard extends LitElement {
         --mdc-icon-size: 18px;
       }
 
+      /* Time-category grouped sections (match reorder card concept, kid-friendly styling) */
+      .time-category-section {
+        margin-top: 12px;
+      }
+
+      .time-category-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 14px;
+        background: rgba(155, 89, 182, 0.10);
+        color: var(--fun-purple);
+        font-weight: 900;
+        letter-spacing: 0.2px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      }
+
+      .time-category-header ha-icon {
+        --mdc-icon-size: 22px;
+        color: var(--fun-purple);
+      }
+
+      .time-category-header .count {
+        margin-left: auto;
+        min-width: 34px;
+        height: 26px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        padding: 0 10px;
+        font-size: 0.85rem;
+        font-weight: 900;
+        color: var(--fun-purple);
+        background: rgba(255, 255, 255, 0.85);
+      }
+
+      .time-category-chores {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        margin-top: 12px;
+      }
+
       /* Individual chore card - optimized for tablet touch, ENTIRE ROW IS CLICKABLE */
       .chore-card {
         background: white;
@@ -1312,15 +1357,18 @@ class ChoremanderChildCard extends LitElement {
     const allCompletions = entity.attributes.todays_completions || entity.attributes.completions || [];
     const todaysCompletions = this._filterCompletionsForToday(allCompletions);
 
-    // Sort chores so completed ones appear at the bottom of the list
-    const childChoresSorted = [...childChores].sort((a, b) => {
-      const aDone = this._isChoreCompletedForToday(a, child, todaysCompletions);
-      const bDone = this._isChoreCompletedForToday(b, child, todaysCompletions);
-      if (aDone !== bDone) {
-        return aDone ? 1 : -1;
-      }
-      return 0;
-    });
+    // Sort chores so completed ones appear at the bottom of the list (within any list/section)
+    const sortDoneLast = (chores) =>
+      [...chores].sort((a, b) => {
+        const aDone = this._isChoreCompletedForToday(a, child, todaysCompletions);
+        const bDone = this._isChoreCompletedForToday(b, child, todaysCompletions);
+        if (aDone !== bDone) {
+          return aDone ? 1 : -1;
+        }
+        return 0;
+      });
+
+    const childChoresSorted = sortDoneLast(childChores);
 
     // Log the filtering result
     console.debug(
@@ -1397,9 +1445,14 @@ class ChoremanderChildCard extends LitElement {
           ${this._renderTimeCategoryFilters(activeCategory)}
           ${childChores.length === 0
             ? this._renderEmptyState()
-            : childChoresSorted.map((chore, index) =>
-                this._renderChoreCard(chore, child, pointsIcon, todaysCompletions, index)
-              )}
+            : this._renderChoresByTimeCategory({
+                activeCategory,
+                chores: childChoresSorted,
+                child,
+                pointsIcon,
+                todaysCompletions,
+                sortDoneLast,
+              })}
         </div>
 
         ${this._celebrating ? this._renderCelebration() : ""}
@@ -1421,6 +1474,60 @@ class ChoremanderChildCard extends LitElement {
           </div>
         ` : ""}
       </ha-card>
+    `;
+  }
+
+  _getNormalizedTimeCategory(chore) {
+    const category = String(chore?.time_category || "").trim().toLowerCase();
+    const known = new Set(["morning", "afternoon", "evening", "night", "anytime"]);
+    if (known.has(category)) return category;
+    // Unknown/missing categories get treated as anytime so they still show up.
+    return "anytime";
+  }
+
+  _renderChoresByTimeCategory({ activeCategory, chores, child, pointsIcon, todaysCompletions, sortDoneLast }) {
+    const timeCategories = ["morning", "afternoon", "evening", "night", "anytime"];
+
+    // When filtering to a single category, keep legacy behavior:
+    // include chores in that category PLUS "anytime" chores.
+    const categoriesToShow =
+      activeCategory === "all"
+        ? timeCategories
+        : activeCategory === "anytime"
+          ? ["anytime"]
+          : timeCategories.includes(activeCategory)
+            ? [activeCategory, "anytime"]
+            : ["anytime"];
+
+    const uniqueCategories = [];
+    for (const c of categoriesToShow) {
+      if (!uniqueCategories.includes(c)) uniqueCategories.push(c);
+    }
+
+    return html`
+      ${uniqueCategories.map((category) => {
+        const categoryChores = chores.filter((chore) => this._getNormalizedTimeCategory(chore) === category);
+        if (categoryChores.length === 0) {
+          return "";
+        }
+
+        const sorted = sortDoneLast(categoryChores);
+
+        return html`
+          <div class="time-category-section">
+            <div class="time-category-header">
+              <ha-icon icon="${this._getTimeCategoryIcon(category)}"></ha-icon>
+              ${this._getTimeCategoryLabel(category)}
+              <span class="count">${sorted.length}</span>
+            </div>
+            <div class="time-category-chores">
+              ${sorted.map((chore, index) =>
+                this._renderChoreCard(chore, child, pointsIcon, todaysCompletions, index)
+              )}
+            </div>
+          </div>
+        `;
+      })}
     `;
   }
 
