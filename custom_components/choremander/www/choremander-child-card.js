@@ -996,6 +996,12 @@ class ChoremanderChildCard extends LitElement {
         filter: saturate(0.9);
       }
 
+      /* If a uniform chore color is set, keep completed tiles in that color */
+      .chores-container[data-chore-color]:not([data-chore-color="default"]) .chore-card.completed {
+        background: var(--uniform-chore-color);
+        filter: saturate(0.85);
+      }
+
       .chore-card.completed .chore-icon-container {
         background: rgba(255, 255, 255, 0.8);
       }
@@ -1279,7 +1285,7 @@ class ChoremanderChildCard extends LitElement {
           width: 50px;
           height: 50px;
           min-width: 50px;
-          border-radius: 14px;
+          border-radius: 999px;
         }
 
         .chore-checkbox ha-icon {
