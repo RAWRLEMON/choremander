@@ -432,6 +432,8 @@ class ChoremanderChildCard extends LitElement {
         --uniform-chore-bg-dark: #dbeafe;
         --child-card-border-width: 1px;
         --child-card-accent-width: 10px;
+        --child-card-bg-color: #ffffff;
+        --child-card-font-family: var(--primary-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif);
       }
 
       ha-card {
@@ -446,6 +448,7 @@ class ChoremanderChildCard extends LitElement {
         padding: 0;
         display: flex;
         flex-direction: column;
+        font-family: var(--child-card-font-family);
       }
 
       .card-body {
@@ -456,7 +459,7 @@ class ChoremanderChildCard extends LitElement {
       }
 
       ha-card[data-chore-color]:not([data-chore-color="default"]) {
-        background: #ffffff;
+        background: var(--child-card-bg-color, #ffffff);
         box-shadow: 0 8px 20px rgba(0, 0, 0, 0.10);
         border: var(--child-card-border-width, 1px) solid var(--uniform-chore-color);
       }
@@ -1342,6 +1345,8 @@ class ChoremanderChildCard extends LitElement {
       chore_box_font_size: "default",
       chore_padding: "20px 24px",
       chore_color: "default", // "default" for alternating colors, or a color value like "#ff6b9d"
+      card_background_color: "default", // "default" keeps existing theme/default background behavior
+      card_font_family: "default", // Font family used throughout the child card
       card_border_width: "1", // Border thickness (px) when chore_color is set
       height: null, // e.g. "420px", "60vh", or 420 (pixels)
       ...config,
@@ -1370,6 +1375,8 @@ class ChoremanderChildCard extends LitElement {
       child_id: "",
       time_category: "morning",
       chore_color: "default",
+      card_background_color: "default",
+      card_font_family: "default",
       child_name_font_size: "default",
       time_category_filter_font_size: "default",
       time_category_header_font_size: "default",
@@ -1611,7 +1618,46 @@ class ChoremanderChildCard extends LitElement {
     const borderWidth = this._getCardBorderWidthCss();
     if (borderWidth) parts.push(`--child-card-border-width: ${borderWidth}`);
 
+    const cardBackgroundColor = this._getCardBackgroundColorCss();
+    if (cardBackgroundColor) parts.push(`--child-card-bg-color: ${cardBackgroundColor}`);
+
+    const cardFontFamily = this._getCardFontFamilyCss();
+    if (cardFontFamily) parts.push(`--child-card-font-family: ${cardFontFamily}`);
+
     return parts.length ? `${parts.join(";")};` : "";
+  }
+
+  _getCardBackgroundColorCss() {
+    const raw = this.config ? this.config.card_background_color : undefined;
+    if (!raw || raw === "default") return null;
+    const value = String(raw).trim();
+    if (!/^#[0-9a-fA-F]{6}$/.test(value)) return null;
+    return value;
+  }
+
+  _getCardFontFamilyCss() {
+    const raw = this.config ? this.config.card_font_family : undefined;
+    if (!raw || raw === "default") return null;
+
+    const map = {
+      rounded: '"Nunito", "Segoe UI", "Trebuchet MS", sans-serif',
+      comic: '"Comic Sans MS", "Comic Neue", "Chalkboard SE", "Bradley Hand", cursive',
+      playful: '"Baloo 2", "Fredoka", "Nunito", "Segoe UI", sans-serif',
+      clean: '"Inter", "Segoe UI", Roboto, Arial, sans-serif',
+      serif: '"Georgia", "Times New Roman", serif',
+      mono: '"JetBrains Mono", "Fira Code", Consolas, "Courier New", monospace',
+    };
+
+    if (map[raw]) return map[raw];
+
+    const custom = String(raw).trim();
+    if (!custom) return null;
+
+    // If a full CSS stack is provided, honor it as-is.
+    if (custom.includes(",")) return custom;
+
+    // Single font family name from the picker/user config.
+    return `"${custom.replace(/"/g, '\\"')}", var(--primary-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif)`;
   }
 
   _getCardBorderWidthCss() {
@@ -2480,6 +2526,12 @@ class ChoremanderChildCardEditor extends LitElement {
     return this._isValidHexColor(value) ? value : "#93c5fd";
   }
 
+  _getEditorCardBackgroundColorValue() {
+    const value = this.config ? this.config.card_background_color : undefined;
+    if (!value || value === "default") return "#ffffff";
+    return this._isValidHexColor(value) ? value : "#ffffff";
+  }
+
   _getNumericFontSizeInputValue(value) {
     if (value === undefined || value === null) return "";
     const s = String(value).trim().toLowerCase();
@@ -2495,6 +2547,53 @@ class ChoremanderChildCardEditor extends LitElement {
     return Number.isFinite(n) ? n : "";
   }
 
+  _isFontAvailable(fontName) {
+    if (!fontName || !document || !document.fonts || typeof document.fonts.check !== "function") {
+      return false;
+    }
+    // Compare against a generic family so the check is meaningful.
+    return (
+      document.fonts.check(`12px "${fontName}"`) &&
+      !document.fonts.check(`12px "${fontName}", monospace`) &&
+      !document.fonts.check(`12px "${fontName}", serif`)
+    ) || document.fonts.check(`12px "${fontName}", sans-serif`);
+  }
+
+  _getAvailableCardFonts() {
+    const candidates = [
+      "Arial",
+      "Verdana",
+      "Tahoma",
+      "Trebuchet MS",
+      "Segoe UI",
+      "Inter",
+      "Roboto",
+      "Nunito",
+      "Comic Sans MS",
+      "Comic Neue",
+      "Baloo 2",
+      "Fredoka",
+      "Chalkboard SE",
+      "Bradley Hand",
+      "Georgia",
+      "Times New Roman",
+      "Garamond",
+      "Courier New",
+      "Consolas",
+      "JetBrains Mono",
+      "Fira Code",
+    ];
+
+    // De-duplicate while preserving order.
+    const available = [];
+    for (const name of candidates) {
+      if (this._isFontAvailable(name) && !available.includes(name)) {
+        available.push(name);
+      }
+    }
+    return available;
+  }
+
   setConfig(config) {
     this.config = config;
   }
@@ -2507,6 +2606,13 @@ class ChoremanderChildCardEditor extends LitElement {
     // Get children from overview entity
     const overviewEntity = this.hass.states[this.config.entity];
     const children = (overviewEntity && overviewEntity.attributes && overviewEntity.attributes.children) || [];
+
+    const availableFonts = this._getAvailableCardFonts();
+    const selectedCardFont = this.config.card_font_family || "default";
+    const shouldShowCustomSelected =
+      selectedCardFont !== "default" &&
+      !availableFonts.includes(selectedCardFont) &&
+      !["rounded", "comic", "playful", "clean", "serif", "mono"].includes(selectedCardFont);
 
     return html`
       <div class="form-group">
@@ -2627,6 +2733,60 @@ class ChoremanderChildCardEditor extends LitElement {
       </div>
 
       <div class="form-group">
+        <label>Child Card Background Color</label>
+        <div class="color-row">
+          <input
+            type="color"
+            .value="${this._getEditorCardBackgroundColorValue()}"
+            @input="${this._cardBackgroundColorPicked}"
+            title="Pick a background color"
+          />
+          <input
+            class="hex-input"
+            type="text"
+            .value="${this._getEditorCardBackgroundColorValue()}"
+            @input="${this._cardBackgroundColorTextChanged}"
+            placeholder="#RRGGBB"
+            inputmode="text"
+            autocomplete="off"
+          />
+          <button class="inline-button" @click="${this._resetCardBackgroundColor}">
+            Default
+          </button>
+        </div>
+        <small>
+          Pick any background color for the child card itself.
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label>Card Font</label>
+        <select @change="${this._cardFontFamilyChanged}">
+          <option value="default" ?selected="${selectedCardFont === "default"}">
+            Default
+          </option>
+          ${availableFonts.map((fontName) => html`
+            <option value="${fontName}" ?selected="${selectedCardFont === fontName}">
+              ${fontName}
+            </option>
+          `)}
+          ${shouldShowCustomSelected ? html`
+            <option value="${selectedCardFont}" selected>
+              ${selectedCardFont} (saved)
+            </option>
+          ` : ""}
+          ${["rounded", "comic", "playful", "clean", "serif", "mono"].includes(selectedCardFont) ? html`
+            <option value="${selectedCardFont}" selected>
+              ${selectedCardFont} (legacy)
+            </option>
+          ` : ""}
+        </select>
+        <small>
+          Shows fonts available in this browser/device. Default uses your Home Assistant theme font.
+        </small>
+      </div>
+
+      <div class="form-group">
         <label>Chore Box Font Size</label>
         <input
           type="number"
@@ -2741,6 +2901,28 @@ class ChoremanderChildCardEditor extends LitElement {
     if (this._isValidHexColor(value)) {
       this._updateConfig("chore_color", value);
     }
+  }
+
+  _cardBackgroundColorPicked(e) {
+    const value = e.target.value;
+    if (this._isValidHexColor(value)) {
+      this._updateConfig("card_background_color", value);
+    }
+  }
+
+  _cardBackgroundColorTextChanged(e) {
+    const value = String(e.target.value || "").trim();
+    if (this._isValidHexColor(value)) {
+      this._updateConfig("card_background_color", value);
+    }
+  }
+
+  _resetCardBackgroundColor() {
+    this._updateConfig("card_background_color", "default");
+  }
+
+  _cardFontFamilyChanged(e) {
+    this._updateConfig("card_font_family", e.target.value);
   }
 
   _choreColorTextChanged(e) {
