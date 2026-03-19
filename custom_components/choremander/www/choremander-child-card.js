@@ -430,6 +430,7 @@ class ChoremanderChildCard extends LitElement {
         --uniform-chore-color: var(--fun-blue);
         --uniform-chore-bg-light: #eff6ff;
         --uniform-chore-bg-dark: #dbeafe;
+        --child-card-border-width: 1px;
       }
 
       ha-card {
@@ -454,9 +455,9 @@ class ChoremanderChildCard extends LitElement {
       }
 
       ha-card[data-chore-color]:not([data-chore-color="default"]) {
-        background: var(--uniform-chore-bg-light);
-        box-shadow: 0 10px 26px rgba(0, 0, 0, 0.12);
-        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: #ffffff;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.10);
+        border: var(--child-card-border-width, 1px) solid var(--uniform-chore-color);
       }
 
       /* Header with child avatar and points */
@@ -639,7 +640,7 @@ class ChoremanderChildCard extends LitElement {
       }
 
       .chores-container[data-chore-color]:not([data-chore-color="default"]) {
-        background: rgba(255, 255, 255, 0.10);
+        background: transparent;
       }
 
       .section-title {
@@ -794,15 +795,15 @@ class ChoremanderChildCard extends LitElement {
       }
 
       .chores-container[data-chore-color]:not([data-chore-color="default"]) .chore-card {
-        background: rgba(255, 255, 255, 0.55);
-        border-color: rgba(255, 255, 255, 0.20);
+        background: var(--uniform-chore-color);
+        border-color: var(--uniform-chore-bg-dark);
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
       }
 
       @supports (background: color-mix(in srgb, white 50%, black)) {
         .chores-container[data-chore-color]:not([data-chore-color="default"]) .chore-card {
-          background: color-mix(in srgb, var(--uniform-chore-bg-light) 30%, white);
-          border-color: color-mix(in srgb, var(--uniform-chore-bg-dark) 14%, rgba(255, 255, 255, 0.55));
+          background: var(--uniform-chore-color);
+          border-color: color-mix(in srgb, var(--uniform-chore-color) 80%, black);
         }
       }
 
@@ -1311,6 +1312,7 @@ class ChoremanderChildCard extends LitElement {
       chore_box_font_size: "default",
       chore_padding: "20px 24px",
       chore_color: "default", // "default" for alternating colors, or a color value like "#ff6b9d"
+      card_border_width: "1", // Border thickness (px) when chore_color is set
       height: null, // e.g. "420px", "60vh", or 420 (pixels)
       ...config,
     };
@@ -1576,7 +1578,36 @@ class ChoremanderChildCard extends LitElement {
     const choreBoxVars = this._getChoreBoxFontSizeVarsStyle();
     if (choreBoxVars) parts.push(choreBoxVars);
 
+    const borderWidth = this._getCardBorderWidthCss();
+    if (borderWidth) parts.push(`--child-card-border-width: ${borderWidth}`);
+
     return parts.length ? `${parts.join(";")};` : "";
+  }
+
+  _getCardBorderWidthCss() {
+    const raw = this.config ? this.config.card_border_width : undefined;
+    if (raw === undefined || raw === null || raw === "" || raw === "default") {
+      return null;
+    }
+
+    if (typeof raw === "number" && Number.isFinite(raw)) {
+      return `${raw}px`;
+    }
+
+    if (typeof raw !== "string") {
+      return null;
+    }
+
+    const value = raw.trim().toLowerCase();
+    if (!value) return null;
+
+    const pxMatch = value.match(/^(-?\d+(?:\.\d+)?)px$/);
+    if (pxMatch) return `${Number(pxMatch[1])}px`;
+
+    const numericMatch = value.match(/^-?\d+(?:\.\d+)?$/);
+    if (numericMatch) return `${Number(value)}px`;
+
+    return null;
   }
 
   _getChoreBoxFontSizeVarsStyle() {
@@ -2573,6 +2604,21 @@ class ChoremanderChildCardEditor extends LitElement {
       </div>
 
       <div class="form-group">
+        <label>Card Border Width</label>
+        <input
+          type="number"
+          min="0"
+          step="0.5"
+          .value="${this._getNumericFontSizeInputValue(this.config.card_border_width)}"
+          @input="${this._cardBorderWidthChanged}"
+          placeholder="1 (px)"
+        />
+        <small>
+          Border thickness (in px) for the child card outline when Chore Color is set.
+        </small>
+      </div>
+
+      <div class="form-group">
         <label>Chore Padding</label>
         <input
           type="text"
@@ -2638,6 +2684,10 @@ class ChoremanderChildCardEditor extends LitElement {
 
   _choreBoxFontSizeChanged(e) {
     this._updateConfig("chore_box_font_size", e.target.value);
+  }
+
+  _cardBorderWidthChanged(e) {
+    this._updateConfig("card_border_width", e.target.value);
   }
 
   _lineSizeChanged(e) {
