@@ -35,17 +35,18 @@ GLOBAL_MODULES: Final = [
 FRONTEND_REGISTERED: Final = "frontend_registered"
 
 
-def _get_version() -> str:
-    """Get version from manifest.json for cache busting."""
-    import json
+def _get_file_version(file_path: Path) -> str:
+    """Get cache-busting version from a specific file's mtime.
 
-    manifest_path = Path(__file__).parent / "manifest.json"
+    Home Assistant reloads the backend on restart, but the browser may keep
+    already-loaded ES modules for the lifetime of the open tab.
+    Tying `?v=` to the actual JS file mtime ensures the module URL changes
+    whenever HACS overwrites the file on disk.
+    """
     try:
-        with open(manifest_path) as f:
-            manifest = json.load(f)
-            return manifest.get("version", "1.0.0")
-    except (FileNotFoundError, json.JSONDecodeError):
-        return "1.0.0"
+        return str(int(file_path.stat().st_mtime_ns))
+    except OSError:
+        return "1"
 
 
 async def async_register_frontend(hass: HomeAssistant) -> None:
@@ -69,8 +70,9 @@ async def async_register_frontend(hass: HomeAssistant) -> None:
     _LOGGER.debug("Registered static path: %s -> %s", URL_BASE, www_path)
 
     # Register global JS modules (loaded on all pages, including config flow)
-    version = _get_version()
     for module in GLOBAL_MODULES:
+        module_path = www_path / module
+        version = _get_file_version(module_path)
         module_url = f"{URL_BASE}/{module}?v={version}"
         add_extra_js_url(hass, module_url)
         _LOGGER.info("Registered global frontend module: %s", module_url)
@@ -85,12 +87,12 @@ async def async_register_cards(hass: HomeAssistant) -> None:
     We use the startup signal to avoid race conditions where Lovelace
     isn't fully loaded yet during config entry setup.
     """
-    
+
+    www_path = Path(__file__).parent / "www"
+
     @callback
     async def _register_cards_on_startup(event):
         """Register cards once Home Assistant has fully started."""
-        version = _get_version()
-
         lovelace_data = hass.data.get("lovelace")
         if lovelace_data is None:
             _LOGGER.debug("Lovelace not available, cards need manual registration")
@@ -127,6 +129,8 @@ async def async_register_cards(hass: HomeAssistant) -> None:
             # Register each card
             for card in CARDS:
                 card_url = f"{URL_BASE}/{card}"
+                card_path = www_path / card
+                version = _get_file_version(card_path)
                 versioned_url = f"{card_url}?v={version}"
 
                 if card_url in existing_urls:
@@ -137,6 +141,12 @@ async def async_register_cards(hass: HomeAssistant) -> None:
                                 await resources.async_update_item(
                                     item["id"],
                                     {"url": versioned_url},
+                                )
+                                _LOGGER.debug(
+                                    "Updated card URL: %s -> %s (v=%s)",
+                                    item.get("url"),
+                                    versioned_url,
+                                    version,
                                 )
                                 _LOGGER.debug("Updated card version: %s", versioned_url)
                             break
