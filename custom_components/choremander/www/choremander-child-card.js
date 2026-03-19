@@ -434,6 +434,8 @@ class ChoremanderChildCard extends LitElement {
         --child-card-accent-width: 10px;
         --child-card-bg-color: #ffffff;
         --child-card-font-family: var(--primary-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif);
+        --child-card-header-text-color: var(--primary-text-color);
+        --child-card-chore-text-color: var(--primary-text-color);
       }
 
       ha-card {
@@ -517,7 +519,7 @@ class ChoremanderChildCard extends LitElement {
       .child-name {
         font-size: var(--child-name-font-size, clamp(1.05rem, 4vw, 1.6rem));
         font-weight: 650;
-        color: var(--primary-text-color);
+        color: var(--child-card-header-text-color, var(--primary-text-color));
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -679,7 +681,7 @@ class ChoremanderChildCard extends LitElement {
         font-size: var(--time-category-filter-font-size, 0.9rem);
         font-weight: 650;
         cursor: pointer;
-        color: var(--primary-text-color);
+        color: var(--child-card-header-text-color, var(--primary-text-color));
         background: rgba(107, 91, 214, 0.14);
         background: color-mix(in srgb, var(--primary-color, #6b5bd6) 18%, transparent);
         transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s ease;
@@ -696,7 +698,7 @@ class ChoremanderChildCard extends LitElement {
 
       .time-category-button.active {
         background: var(--primary-color, var(--fun-purple));
-        color: white;
+        color: var(--child-card-header-text-color, white);
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
       }
 
@@ -716,7 +718,7 @@ class ChoremanderChildCard extends LitElement {
         padding: 10px 12px;
         border-radius: 14px;
         background: rgba(255, 255, 255, 0.04);
-        color: var(--primary-text-color);
+        color: var(--child-card-header-text-color, var(--primary-text-color));
         font-weight: 650;
         font-size: var(--time-category-header-font-size, 1rem);
         letter-spacing: 0.1px;
@@ -739,7 +741,7 @@ class ChoremanderChildCard extends LitElement {
         padding: 0 10px;
         font-size: 0.85em;
         font-weight: 700;
-        color: var(--primary-text-color);
+        color: var(--child-card-header-text-color, var(--primary-text-color));
         background: rgba(255, 255, 255, 0.06);
         border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.08));
       }
@@ -967,7 +969,7 @@ class ChoremanderChildCard extends LitElement {
         font-size: var(--chore-name-font-size, 1.15rem);
         font-weight: 550;
         letter-spacing: -0.01em;
-        color: var(--primary-text-color);
+        color: var(--child-card-chore-text-color, var(--primary-text-color));
         line-height: 1.2;
       }
 
@@ -976,7 +978,7 @@ class ChoremanderChildCard extends LitElement {
         align-items: center;
         gap: 8px;
         font-size: var(--chore-points-font-size, 1.05rem);
-        color: var(--secondary-text-color);
+        color: var(--child-card-chore-text-color, var(--secondary-text-color));
         font-weight: 600;
       }
 
@@ -1010,11 +1012,11 @@ class ChoremanderChildCard extends LitElement {
       }
 
       .chore-card.completed .chore-name {
-        color: var(--primary-text-color);
+        color: var(--child-card-chore-text-color, var(--primary-text-color));
       }
 
       .chore-card.completed .chore-points {
-        color: var(--secondary-text-color);
+        color: var(--child-card-chore-text-color, var(--secondary-text-color));
         opacity: 0.85;
       }
 
@@ -1347,6 +1349,8 @@ class ChoremanderChildCard extends LitElement {
       chore_color: "default", // "default" for alternating colors, or a color value like "#ff6b9d"
       card_background_color: "default", // "default" keeps existing theme/default background behavior
       card_font_family: "default", // Font family used throughout the child card
+      header_text_color: "default", // Child name + time-category filter/header text color
+      chore_text_color: "default", // Chore box text color
       card_border_width: "1", // Border thickness (px) when chore_color is set
       height: null, // e.g. "420px", "60vh", or 420 (pixels)
       ...config,
@@ -1377,6 +1381,8 @@ class ChoremanderChildCard extends LitElement {
       chore_color: "default",
       card_background_color: "default",
       card_font_family: "default",
+      header_text_color: "default",
+      chore_text_color: "default",
       child_name_font_size: "default",
       time_category_filter_font_size: "default",
       time_category_header_font_size: "default",
@@ -1624,6 +1630,12 @@ class ChoremanderChildCard extends LitElement {
     const cardFontFamily = this._getCardFontFamilyCss();
     if (cardFontFamily) parts.push(`--child-card-font-family: ${cardFontFamily}`);
 
+    const headerTextColor = this._getHeaderTextColorCss();
+    if (headerTextColor) parts.push(`--child-card-header-text-color: ${headerTextColor}`);
+
+    const choreTextColor = this._getChoreTextColorCss();
+    if (choreTextColor) parts.push(`--child-card-chore-text-color: ${choreTextColor}`);
+
     return parts.length ? `${parts.join(";")};` : "";
   }
 
@@ -1658,6 +1670,22 @@ class ChoremanderChildCard extends LitElement {
 
     // Single font family name from the picker/user config.
     return `"${custom.replace(/"/g, '\\"')}", var(--primary-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif)`;
+  }
+
+  _getHeaderTextColorCss() {
+    const raw = this.config ? this.config.header_text_color : undefined;
+    if (!raw || raw === "default") return null;
+    const value = String(raw).trim();
+    if (!/^#[0-9a-fA-F]{6}$/.test(value)) return null;
+    return value;
+  }
+
+  _getChoreTextColorCss() {
+    const raw = this.config ? this.config.chore_text_color : undefined;
+    if (!raw || raw === "default") return null;
+    const value = String(raw).trim();
+    if (!/^#[0-9a-fA-F]{6}$/.test(value)) return null;
+    return value;
   }
 
   _getCardBorderWidthCss() {
@@ -2532,6 +2560,18 @@ class ChoremanderChildCardEditor extends LitElement {
     return this._isValidHexColor(value) ? value : "#ffffff";
   }
 
+  _getEditorHeaderTextColorValue() {
+    const value = this.config ? this.config.header_text_color : undefined;
+    if (!value || value === "default") return "#1f2937";
+    return this._isValidHexColor(value) ? value : "#1f2937";
+  }
+
+  _getEditorChoreTextColorValue() {
+    const value = this.config ? this.config.chore_text_color : undefined;
+    if (!value || value === "default") return "#1f2937";
+    return this._isValidHexColor(value) ? value : "#1f2937";
+  }
+
   _getNumericFontSizeInputValue(value) {
     if (value === undefined || value === null) return "";
     const s = String(value).trim().toLowerCase();
@@ -2787,6 +2827,60 @@ class ChoremanderChildCardEditor extends LitElement {
       </div>
 
       <div class="form-group">
+        <label>Header Text Color</label>
+        <div class="color-row">
+          <input
+            type="color"
+            .value="${this._getEditorHeaderTextColorValue()}"
+            @input="${this._headerTextColorPicked}"
+            title="Pick header text color"
+          />
+          <input
+            class="hex-input"
+            type="text"
+            .value="${this._getEditorHeaderTextColorValue()}"
+            @input="${this._headerTextColorTextChanged}"
+            placeholder="#RRGGBB"
+            inputmode="text"
+            autocomplete="off"
+          />
+          <button class="inline-button" @click="${this._resetHeaderTextColor}">
+            Default
+          </button>
+        </div>
+        <small>
+          Used for child name, time category filter buttons, and time category headers.
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label>Chore Box Text Color</label>
+        <div class="color-row">
+          <input
+            type="color"
+            .value="${this._getEditorChoreTextColorValue()}"
+            @input="${this._choreTextColorPicked}"
+            title="Pick chore text color"
+          />
+          <input
+            class="hex-input"
+            type="text"
+            .value="${this._getEditorChoreTextColorValue()}"
+            @input="${this._choreTextColorTextChanged}"
+            placeholder="#RRGGBB"
+            inputmode="text"
+            autocomplete="off"
+          />
+          <button class="inline-button" @click="${this._resetChoreTextColor}">
+            Default
+          </button>
+        </div>
+        <small>
+          Used for the chore name and points text in each chore box.
+        </small>
+      </div>
+
+      <div class="form-group">
         <label>Chore Box Font Size</label>
         <input
           type="number"
@@ -2923,6 +3017,42 @@ class ChoremanderChildCardEditor extends LitElement {
 
   _cardFontFamilyChanged(e) {
     this._updateConfig("card_font_family", e.target.value);
+  }
+
+  _headerTextColorPicked(e) {
+    const value = e.target.value;
+    if (this._isValidHexColor(value)) {
+      this._updateConfig("header_text_color", value);
+    }
+  }
+
+  _headerTextColorTextChanged(e) {
+    const value = String(e.target.value || "").trim();
+    if (this._isValidHexColor(value)) {
+      this._updateConfig("header_text_color", value);
+    }
+  }
+
+  _resetHeaderTextColor() {
+    this._updateConfig("header_text_color", "default");
+  }
+
+  _choreTextColorPicked(e) {
+    const value = e.target.value;
+    if (this._isValidHexColor(value)) {
+      this._updateConfig("chore_text_color", value);
+    }
+  }
+
+  _choreTextColorTextChanged(e) {
+    const value = String(e.target.value || "").trim();
+    if (this._isValidHexColor(value)) {
+      this._updateConfig("chore_text_color", value);
+    }
+  }
+
+  _resetChoreTextColor() {
+    this._updateConfig("chore_text_color", "default");
   }
 
   _choreColorTextChanged(e) {
