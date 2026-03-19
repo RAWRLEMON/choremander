@@ -431,6 +431,7 @@ class ChoremanderChildCard extends LitElement {
         --uniform-chore-bg-light: #eff6ff;
         --uniform-chore-bg-dark: #dbeafe;
         --child-card-border-width: 1px;
+        --child-card-accent-width: 10px;
       }
 
       ha-card {
@@ -466,11 +467,11 @@ class ChoremanderChildCard extends LitElement {
         align-items: center;
         justify-content: space-between;
         padding: 16px 18px;
-        background: rgba(255, 255, 255, 0.04);
-        backdrop-filter: blur(12px);
+        background: transparent;
+        backdrop-filter: none;
         gap: 12px;
         min-width: 0;
-        border-bottom: 1px solid var(--divider-color, rgba(0, 0, 0, 0.08));
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
       }
 
       .child-info {
@@ -490,7 +491,7 @@ class ChoremanderChildCard extends LitElement {
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
         animation: float 3s ease-in-out infinite;
       }
 
@@ -524,11 +525,11 @@ class ChoremanderChildCard extends LitElement {
         display: flex;
         flex-direction: column;
         align-items: center;
-        background: rgba(255, 255, 255, 0.06);
+        background: #ffffff;
         padding: 10px 12px;
         border-radius: 16px;
-        border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.08));
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.10);
         min-width: 0;
         max-width: 45%;
         flex-shrink: 1;
@@ -749,15 +750,15 @@ class ChoremanderChildCard extends LitElement {
 
       /* Individual chore card - optimized for tablet touch, ENTIRE ROW IS CLICKABLE */
       .chore-card {
-        background: var(--card-background-color, white);
-        border-radius: 16px;
-        padding: 14px 16px;
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 12px 14px;
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 16px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-        border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.08));
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.08);
         border-left: 0;
         transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.18s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
@@ -770,6 +771,13 @@ class ChoremanderChildCard extends LitElement {
         -webkit-tap-highlight-color: transparent;
         /* Make entire row clickable */
         cursor: pointer;
+      }
+
+      /* Colored mode: chore tiles use the exact picked color */
+      .chores-container[data-chore-color]:not([data-chore-color="default"]) .chore-card {
+        background: var(--uniform-chore-color);
+        border-color: color-mix(in srgb, var(--uniform-chore-color) 72%, black);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
       }
 
       /* Default alternating colors */
@@ -794,16 +802,9 @@ class ChoremanderChildCard extends LitElement {
         border-left: 0;
       }
 
-      .chores-container[data-chore-color]:not([data-chore-color="default"]) .chore-card {
-        background: var(--uniform-chore-color);
-        border-color: var(--uniform-chore-bg-dark);
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-      }
-
-      @supports (background: color-mix(in srgb, white 50%, black)) {
+      @supports not (background: color-mix(in srgb, white 50%, black)) {
         .chores-container[data-chore-color]:not([data-chore-color="default"]) .chore-card {
-          background: var(--uniform-chore-color);
-          border-color: color-mix(in srgb, var(--uniform-chore-color) 80%, black);
+          border-color: rgba(0, 0, 0, 0.14);
         }
       }
 
@@ -840,6 +841,29 @@ class ChoremanderChildCard extends LitElement {
         align-items: center;
         gap: 16px;
         flex: 1;
+      }
+
+      .chore-icon-chip {
+        width: 38px;
+        height: 38px;
+        min-width: 38px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.85);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        box-shadow: 0 1px 5px rgba(0, 0, 0, 0.08);
+      }
+
+      .chores-container[data-chore-color]:not([data-chore-color="default"]) .chore-icon-chip {
+        background: color-mix(in srgb, var(--uniform-chore-color) 22%, white);
+        border-color: color-mix(in srgb, var(--uniform-chore-color) 35%, rgba(0, 0, 0, 0.10));
+      }
+
+      .chore-icon-chip ha-icon {
+        --mdc-icon-size: 22px;
+        color: var(--primary-text-color);
       }
 
       /* Chore number wrapper (icon removed) */
@@ -891,37 +915,37 @@ class ChoremanderChildCard extends LitElement {
 
       /* Checkbox for chore completion */
       .chore-checkbox {
-        width: 44px;
-        height: 44px;
-        min-width: 44px;
-        border-radius: 12px;
-        border: 3px solid #bdc3c7;
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        border-radius: 999px;
+        border: 2px solid rgba(0, 0, 0, 0.18);
         background: white;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
         transition: all 0.2s ease;
         flex-shrink: 0;
       }
 
       .chore-checkbox ha-icon {
-        --mdc-icon-size: 28px;
+        --mdc-icon-size: 22px;
         color: transparent;
         transition: all 0.2s ease;
       }
 
       /* Unchecked state - hover effect */
       .chore-card:not(.completed):hover .chore-checkbox {
-        border-color: var(--fun-green);
-        background: rgba(46, 204, 113, 0.1);
+        border-color: var(--uniform-chore-color, var(--fun-green));
+        background: color-mix(in srgb, var(--uniform-chore-color, var(--fun-green)) 12%, white);
       }
 
       /* Checked state */
       .chore-card.completed .chore-checkbox {
         border-color: var(--fun-green);
         background: var(--fun-green);
-        box-shadow: 0 3px 10px rgba(46, 204, 113, 0.4);
+        box-shadow: 0 2px 8px rgba(46, 204, 113, 0.35);
       }
 
       .chore-card.completed .chore-checkbox ha-icon {
@@ -2029,6 +2053,7 @@ class ChoremanderChildCard extends LitElement {
     // Chore number (1-indexed for display) and color class (cycle through 8 colors)
     const choreNumber = choreIndex + 1;
     const colorClass = `color-${choreIndex % 8}`;
+    const choreIcon = (chore && chore.icon) ? String(chore.icon) : null;
 
     // Click handler for the entire row
     const handleRowClick = () => {
@@ -2056,7 +2081,14 @@ class ChoremanderChildCard extends LitElement {
       >
         <div class="chore-info">
           <div class="chore-number-wrapper">
-            <div class="chore-number-badge ${colorClass}">${choreNumber}</div>
+            ${choreIcon
+              ? html`
+                  <div class="chore-icon-chip">
+                    <ha-icon icon="${choreIcon}"></ha-icon>
+                  </div>
+                `
+              : html`<div class="chore-number-badge ${colorClass}">${choreNumber}</div>`
+            }
           </div>
           <div class="chore-details">
             <div class="chore-name">${chore.name}</div>
