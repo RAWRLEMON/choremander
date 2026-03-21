@@ -756,7 +756,9 @@ class ChoremanderChildCard extends LitElement {
 
       /* Individual chore card - optimized for tablet touch, ENTIRE ROW IS CLICKABLE */
       .chore-card {
-        background: #ffffff;
+        /* Used to darken completed rows with color-mix (same hue, darker shade) */
+        --chore-card-base-bg: #ffffff;
+        background: var(--chore-card-base-bg);
         border-radius: 14px;
         padding: 12px 14px;
         display: flex;
@@ -783,7 +785,8 @@ class ChoremanderChildCard extends LitElement {
 
       /* Colored mode: chore tiles use the exact picked color */
       .chores-container[data-chore-color]:not([data-chore-color="default"]) .chore-card {
-        background: var(--uniform-chore-color);
+        --chore-card-base-bg: var(--uniform-chore-color);
+        background: var(--chore-card-base-bg);
         border-color: color-mix(in srgb, var(--uniform-chore-color) 72%, black);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
       }
@@ -949,7 +952,7 @@ class ChoremanderChildCard extends LitElement {
         height: calc(36px * var(--chore-checkbox-scale, 1));
         min-width: calc(36px * var(--chore-checkbox-scale, 1));
         border-radius: 999px;
-        border: 2px solid rgba(0, 0, 0, 0.18);
+        border: 2px solid var(--child-card-chore-text-color, var(--primary-text-color));
         background: transparent;
         display: flex;
         align-items: center;
@@ -965,21 +968,17 @@ class ChoremanderChildCard extends LitElement {
         transition: all 0.2s ease;
       }
 
-      /* Unchecked state - hover effect */
+      /* Unchecked state - hover keeps same border as chore text (exact match) */
       .chore-card:not(.completed):hover .chore-checkbox {
-        border-color: var(--uniform-chore-color, var(--fun-green));
+        border-color: var(--child-card-chore-text-color, var(--primary-text-color));
         background: transparent;
       }
 
-      /* Checked state */
+      /* Checked: transparent fill so chore card background shows; border + checkmark = text color */
       .chore-card.completed .chore-checkbox {
-        border-color: color-mix(
-          in srgb,
-          var(--child-card-chore-text-color, var(--primary-text-color)) 45%,
-          rgba(0, 0, 0, 0.18)
-        );
-        background: rgba(255, 255, 255, 0.95);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
+        border-color: var(--child-card-chore-text-color, var(--primary-text-color));
+        background: transparent;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
       }
 
       .chore-card.completed .chore-checkbox ha-icon {
@@ -1037,15 +1036,24 @@ class ChoremanderChildCard extends LitElement {
         opacity: 1;
       }
 
-      /* Darken (tint) the completed chore card background.
-         Implemented as an overlay so text/checkbox styles don't get "washed out" by opacity. */
+      /* Darken completed row: mix row base color toward black (blue→dark blue, red→dark red, etc.) */
       .chore-card.completed::before {
         content: "";
         position: absolute;
         inset: 0;
-        background: rgba(0, 0, 0, var(--chore-completed-tint-level, 0.14));
+        background: color-mix(
+          in srgb,
+          var(--chore-card-base-bg) var(--chore-completed-base-mix-pct, 86%),
+          black
+        );
         z-index: 0;
         pointer-events: none;
+      }
+
+      @supports not (background: color-mix(in srgb, white 50%, black)) {
+        .chore-card.completed::before {
+          background: rgba(0, 0, 0, 0.14);
+        }
       }
 
       .chore-card.completed > * {
@@ -1867,9 +1875,10 @@ class ChoremanderChildCard extends LitElement {
     const num = this._parseNumericFontSizePx(raw);
     if (num == null || !Number.isFinite(num)) return null;
 
-    // Keep within a sensible alpha range so the UI doesn't become unreadable.
-    const clamped = Math.max(0, Math.min(0.5, num));
-    return `--chore-completed-tint-level: ${clamped}`;
+    // Amount of black mixed into the row base color (0 = unchanged, 0.5 = half black).
+    const blackFraction = Math.max(0, Math.min(0.5, num));
+    const basePct = Math.round((1 - blackFraction) * 1000) / 10;
+    return `--chore-completed-base-mix-pct: ${basePct}%`;
   }
 
   _parseNumericFontSizePx(value) {
@@ -3108,7 +3117,8 @@ class ChoremanderChildCardEditor extends LitElement {
           placeholder="Default (0.14)"
         />
         <small>
-          Darkens the completed chore box background. Higher = darker (0.00 disables tint).
+          Darkens completed rows by mixing the row color toward black (same hue, darker). Higher =
+          stronger (0.00 = no change). Default ≈ 0.14 when blank.
         </small>
       </div>
 
