@@ -864,6 +864,13 @@ class ChoremanderChildCard extends LitElement {
         box-shadow: 0 1px 5px rgba(0, 0, 0, 0.08);
       }
 
+      .chore-icon-chip--emoji {
+        width: calc(38px * var(--chore-emoji-box-scale, 1));
+        height: calc(38px * var(--chore-emoji-box-scale, 1));
+        min-width: calc(38px * var(--chore-emoji-box-scale, 1));
+        border-radius: calc(12px * var(--chore-emoji-box-scale, 1));
+      }
+
       .chores-container[data-chore-color]:not([data-chore-color="default"]) .chore-icon-chip {
         background: color-mix(in srgb, var(--uniform-chore-color) 22%, white);
         border-color: color-mix(in srgb, var(--uniform-chore-color) 35%, rgba(0, 0, 0, 0.10));
@@ -881,7 +888,7 @@ class ChoremanderChildCard extends LitElement {
       }
 
       .chore-emoji {
-        font-size: 1.45rem;
+        font-size: calc(1.45rem * var(--chore-emoji-box-scale, 1));
         line-height: 1;
         display: flex;
         align-items: center;
@@ -1386,6 +1393,7 @@ class ChoremanderChildCard extends LitElement {
       time_category_filter_font_size: "default",
       time_category_header_font_size: "default",
       chore_box_font_size: "default",
+      chore_emoji_box_scale: "default",
       chore_padding: "20px 24px",
       chore_color: "default", // "default" for alternating colors, or a color value like "#ff6b9d"
       card_background_color: "default", // "default" keeps existing theme/default background behavior
@@ -1429,6 +1437,7 @@ class ChoremanderChildCard extends LitElement {
       time_category_filter_font_size: "default",
       time_category_header_font_size: "default",
       chore_box_font_size: "default",
+      chore_emoji_box_scale: "default",
     };
   }
 
@@ -1662,6 +1671,9 @@ class ChoremanderChildCard extends LitElement {
     const choreBoxVars = this._getChoreBoxFontSizeVarsStyle();
     if (choreBoxVars) parts.push(choreBoxVars);
 
+    const emojiBoxScale = this._getChoreEmojiBoxScaleCss();
+    if (emojiBoxScale) parts.push(emojiBoxScale);
+
     const borderWidth = this._getCardBorderWidthCss();
     if (borderWidth) parts.push(`--child-card-border-width: ${borderWidth}`);
 
@@ -1797,6 +1809,17 @@ class ChoremanderChildCard extends LitElement {
     const iconPx = Math.max(1, Math.round(pointsPx * 1.1));
 
     return `--chore-name-font-size: ${namePx}px;--chore-points-font-size: ${pointsPx}px;--chore-stars-icon-size: ${iconPx}px`;
+  }
+
+  _getChoreEmojiBoxScaleCss() {
+    const raw = this.config ? this.config.chore_emoji_box_scale : undefined;
+    if (!raw || raw === "default") return null;
+
+    const num = this._parseNumericFontSizePx(raw);
+    if (num == null || !Number.isFinite(num) || num <= 0) return null;
+
+    // Numeric scale multiplier; CSS uses this to scale the emoji chip and emoji font.
+    return `--chore-emoji-box-scale: ${num}`;
   }
 
   _parseNumericFontSizePx(value) {
@@ -2210,6 +2233,7 @@ class ChoremanderChildCard extends LitElement {
     const choreIconRaw = chore && chore.icon ? String(chore.icon).trim() : "";
     const hasChoreIcon = !!choreIconRaw;
     const iconWhiteBg = chore.icon_white_background !== false;
+    const isChoreIconMdi = this._isChoreIconMdi(choreIconRaw);
 
     const entity = this.hass && this.config && this.hass.states[this.config.entity];
     const pointsIcon = (entity && entity.attributes && entity.attributes.points_icon) || "mdi:star";
@@ -2245,8 +2269,10 @@ class ChoremanderChildCard extends LitElement {
           <div class="chore-number-wrapper">
             ${hasChoreIcon
               ? html`
-                  <div class="chore-icon-chip ${iconWhiteBg ? "chore-icon-chip--white" : ""}">
-                    ${this._isChoreIconMdi(choreIconRaw)
+                  <div
+                    class="chore-icon-chip ${iconWhiteBg ? "chore-icon-chip--white" : ""} ${isChoreIconMdi ? "" : "chore-icon-chip--emoji"}"
+                  >
+                    ${isChoreIconMdi
                       ? html`<ha-icon icon="${choreIconRaw}"></ha-icon>`
                       : html`<span class="chore-emoji" aria-hidden="true">${choreIconRaw}</span>`}
                   </div>
@@ -2991,6 +3017,21 @@ class ChoremanderChildCardEditor extends LitElement {
       </div>
 
       <div class="form-group">
+        <label>Chore Emoji Box Scale</label>
+        <input
+          type="number"
+          min="0.1"
+          step="0.05"
+          .value="${this._getNumericFontSizeInputValue(this.config.chore_emoji_box_scale)}"
+          @input="${this._choreEmojiBoxScaleChanged}"
+          placeholder="Default (1.0)"
+        />
+        <small>
+          Scales the emoji “chip” size and emoji font size (affects emoji icons, not MDI icons).
+        </small>
+      </div>
+
+      <div class="form-group">
         <label>Card Border Width</label>
         <input
           type="number"
@@ -3086,6 +3127,10 @@ class ChoremanderChildCardEditor extends LitElement {
 
   _choreBoxFontSizeChanged(e) {
     this._updateConfig("chore_box_font_size", e.target.value);
+  }
+
+  _choreEmojiBoxScaleChanged(e) {
+    this._updateConfig("chore_emoji_box_scale", e.target.value);
   }
 
   _cardBorderWidthChanged(e) {
