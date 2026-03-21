@@ -642,6 +642,21 @@ class ChoremanderChildCard extends LitElement {
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
+        --chore-scroll-edge-fade-size: 18px;
+        -webkit-mask-image: linear-gradient(
+          to bottom,
+          transparent 0,
+          #000 var(--chore-scroll-edge-fade-size),
+          #000 calc(100% - var(--chore-scroll-edge-fade-size)),
+          transparent 100%
+        );
+        mask-image: linear-gradient(
+          to bottom,
+          transparent 0,
+          #000 var(--chore-scroll-edge-fade-size),
+          #000 calc(100% - var(--chore-scroll-edge-fade-size)),
+          transparent 100%
+        );
       }
 
       .chores-container[data-chore-color]:not([data-chore-color="default"]) {
