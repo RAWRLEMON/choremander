@@ -1535,7 +1535,11 @@ class ChoremanderChildCard extends LitElement {
 
     // Get chores for this child and time category
     const allChores = entity.attributes.chores || [];
-    const activeCategory = this._getActiveTimeCategory();
+    const availableCategories = this._getAvailableTimeCategoriesForChild(allChores, child);
+    const activeCategory = this._resolveActiveTimeCategory(
+      this._getActiveTimeCategory(),
+      availableCategories
+    );
 
     // Log raw data for debugging assignment issues
     console.debug(
@@ -1653,7 +1657,7 @@ class ChoremanderChildCard extends LitElement {
 
         <div class="card-body">
           <div class="chores-container" data-chore-color="${this.config.chore_color || 'default'}">
-            ${this._renderTimeCategoryFilters(activeCategory)}
+            ${this._renderTimeCategoryFilters(activeCategory, availableCategories)}
             ${childChores.length === 0
               ? this._renderEmptyState()
               : this._renderChoresByTimeCategory({
@@ -2037,23 +2041,13 @@ class ChoremanderChildCard extends LitElement {
         chore.time_category === "anytime";
 
       // Check if chore is assigned to this child
-      // If assigned_to is empty or not set, show to ALL children
-      // If assigned_to has specific child IDs, only show to those children
-      // Ensure assigned_to is always an array
-      let assignedTo = chore.assigned_to;
-      if (assignedTo == null) { // Use == null to catch both undefined and null
-        assignedTo = [];
-      } else if (!Array.isArray(assignedTo)) {
-        assignedTo = [assignedTo]; // Wrap non-array values
-      }
-
-      // Convert all assigned_to values to strings for consistent comparison
-      const assignedToStrings = assignedTo.map(id => String(id));
-
-      // STRICT: Only check child ID, not name
-      // assigned_to should ONLY contain child IDs, never names
-      const isAssignedToAll = assignedToStrings.length === 0;
-      const isAssignedToChild = isAssignedToAll || assignedToStrings.includes(childId);
+      const isAssignedToChild = this._isChoreAssignedToChild(chore, childId);
+      const assignedTo = Array.isArray(chore.assigned_to)
+        ? chore.assigned_to
+        : chore.assigned_to == null
+          ? []
+          : [chore.assigned_to];
+      const isAssignedToAll = assignedTo.length === 0;
 
       // Debug logging for each chore with assignments (always log to help debug)
       console.debug(
@@ -2152,6 +2146,52 @@ class ChoremanderChildCard extends LitElement {
     return this._activeTimeCategory || this.config.time_category || "anytime";
   }
 
+  _isChoreAssignedToChild(chore, childId) {
+    const normalizedChildId = String(childId || "");
+    let assignedTo = chore ? chore.assigned_to : [];
+
+    // Empty assignment means the chore is available to all children.
+    if (assignedTo == null) assignedTo = [];
+    if (!Array.isArray(assignedTo)) assignedTo = [assignedTo];
+
+    const assignedToStrings = assignedTo.map((id) => String(id));
+    return assignedToStrings.length === 0 || assignedToStrings.includes(normalizedChildId);
+  }
+
+  _getAvailableTimeCategoriesForChild(chores, child) {
+    const childId = String((child && child.id) || "");
+    const counts = {
+      morning: 0,
+      afternoon: 0,
+      evening: 0,
+      night: 0,
+      anytime: 0,
+    };
+
+    chores.forEach((chore) => {
+      if (!this._isChoreAssignedToChild(chore, childId)) return;
+      const normalized = this._getNormalizedTimeCategory(chore);
+      if (Object.prototype.hasOwnProperty.call(counts, normalized)) {
+        counts[normalized] += 1;
+      }
+    });
+
+    return ["morning", "afternoon", "evening", "night", "anytime"].filter(
+      (category) => counts[category] > 0
+    );
+  }
+
+  _resolveActiveTimeCategory(requestedCategory, availableCategories) {
+    const available = Array.isArray(availableCategories) ? availableCategories : [];
+    const requested = requestedCategory || "anytime";
+
+    if (requested === "all") return "all";
+    if (available.includes(requested)) return requested;
+    if (available.includes("anytime")) return "anytime";
+    if (available.length > 0) return available[0];
+    return "all";
+  }
+
   _setActiveTimeCategory(category) {
     if (!category || this._activeTimeCategory === category) {
       return;
@@ -2160,8 +2200,14 @@ class ChoremanderChildCard extends LitElement {
     this.requestUpdate();
   }
 
-  _renderTimeCategoryFilters(activeCategory) {
-    const categories = ["morning", "afternoon", "evening", "night", "anytime", "all"];
+  _renderTimeCategoryFilters(activeCategory, availableCategories) {
+    const categories = [...(availableCategories || [])];
+    if (categories.length > 0) {
+      categories.push("all");
+    }
+    if (categories.length === 0) {
+      return "";
+    }
     return html`
       <div class="time-category-filters" role="group" aria-label="Time category">
         ${categories.map((category) => html`
