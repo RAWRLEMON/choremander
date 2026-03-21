@@ -323,7 +323,7 @@ class ChoremanderOptionsFlow(config_entries.OptionsFlow):
             vol.Required("name"): str,
             vol.Optional("description", default=""): str,
             vol.Required("points", default=10): selector.NumberSelector(
-                selector.NumberSelectorConfig(min=1, max=1000, mode=selector.NumberSelectorMode.BOX)
+                selector.NumberSelectorConfig(min=0, max=1000, mode=selector.NumberSelectorMode.BOX)
             ),
             vol.Required("time_category", default="anytime"): selector.SelectSelector(
                 selector.SelectSelectorConfig(
@@ -434,7 +434,7 @@ class ChoremanderOptionsFlow(config_entries.OptionsFlow):
                 )
             ),
             vol.Required("points", default=10): selector.NumberSelector(
-                selector.NumberSelectorConfig(min=1, max=1000, mode=selector.NumberSelectorMode.BOX)
+                selector.NumberSelectorConfig(min=0, max=1000, mode=selector.NumberSelectorMode.BOX)
             ),
             vol.Required("time_category", default="anytime"): selector.SelectSelector(
                 selector.SelectSelectorConfig(
@@ -543,7 +543,7 @@ class ChoremanderOptionsFlow(config_entries.OptionsFlow):
             vol.Required("name", default=chore.name): str,
             vol.Optional("description", default=chore.description): str,
             vol.Required("points", default=chore.points): selector.NumberSelector(
-                selector.NumberSelectorConfig(min=1, max=1000, mode=selector.NumberSelectorMode.BOX)
+                selector.NumberSelectorConfig(min=0, max=1000, mode=selector.NumberSelectorMode.BOX)
             ),
             vol.Required("time_category", default=chore.time_category): selector.SelectSelector(
                 selector.SelectSelectorConfig(

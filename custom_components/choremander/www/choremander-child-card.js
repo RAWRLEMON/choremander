@@ -999,6 +999,20 @@ class ChoremanderChildCard extends LitElement {
         letter-spacing: 0.01em;
       }
 
+      .chore-points {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: var(--chore-points-font-size, 1.05rem);
+        color: var(--child-card-chore-text-color, var(--secondary-text-color));
+        font-weight: 600;
+      }
+
+      .chore-points ha-icon {
+        --mdc-icon-size: var(--chore-stars-icon-size, 24px);
+        color: var(--warning-color, var(--fun-yellow));
+      }
+
       @keyframes spin {
         from { transform: rotate(0deg); }
         to { transform: rotate(360deg); }
@@ -1028,6 +1042,11 @@ class ChoremanderChildCard extends LitElement {
       }
 
       .chore-card.completed .chore-daily-limit {
+        color: var(--child-card-chore-text-color, var(--secondary-text-color));
+        opacity: 0.85;
+      }
+
+      .chore-card.completed .chore-points {
         color: var(--child-card-chore-text-color, var(--secondary-text-color));
         opacity: 0.85;
       }
@@ -1316,6 +1335,10 @@ class ChoremanderChildCard extends LitElement {
         .chore-daily-limit {
           font-size: var(--chore-points-font-size, 1.15rem);
         }
+
+        .chore-points {
+          font-size: var(--chore-points-font-size, 1.4rem);
+        }
       }
 
       .chore-card[line-size="small"] .chore-name {
@@ -1324,12 +1347,24 @@ class ChoremanderChildCard extends LitElement {
       .chore-card[line-size="small"] .chore-daily-limit {
         font-size: 0.8rem;
       }
+      .chore-card[line-size="small"] .chore-points {
+        font-size: 0.8rem;
+      }
+      .chore-card[line-size="small"] .chore-points ha-icon {
+        --mdc-icon-size: 18px;
+      }
 
       .chore-card[line-size="large"] .chore-name {
         font-size: 2rem;
       }
       .chore-card[line-size="large"] .chore-daily-limit {
         font-size: 1.25rem;
+      }
+      .chore-card[line-size="large"] .chore-points {
+        font-size: 1.5rem;
+      }
+      .chore-card[line-size="large"] .chore-points ha-icon {
+        --mdc-icon-size: 32px;
       }
     `;
   }
@@ -2176,6 +2211,12 @@ class ChoremanderChildCard extends LitElement {
     const hasChoreIcon = !!choreIconRaw;
     const iconWhiteBg = chore.icon_white_background !== false;
 
+    const entity = this.hass && this.config && this.hass.states[this.config.entity];
+    const pointsIcon = (entity && entity.attributes && entity.attributes.points_icon) || "mdi:star";
+    const chorePointsRaw = chore && chore.points != null ? Number(chore.points) : 0;
+    const chorePoints = Number.isFinite(chorePointsRaw) ? chorePointsRaw : 0;
+    const showChorePoints = chorePoints > 0;
+
     // Click handler for the entire row
     const handleRowClick = () => {
       if (isLoading) return;
@@ -2215,6 +2256,14 @@ class ChoremanderChildCard extends LitElement {
           </div>
           <div class="chore-details">
             <div class="chore-name">${chore.name}</div>
+            ${showChorePoints
+              ? html`
+                  <div class="chore-points">
+                    <ha-icon icon="${pointsIcon}"></ha-icon>
+                    +${chorePoints}
+                  </div>
+                `
+              : ""}
             ${dailyLimit > 1
               ? html`<div class="chore-daily-limit">${completionsToday}/${dailyLimit} today</div>`
               : ""}
@@ -2264,7 +2313,8 @@ class ChoremanderChildCard extends LitElement {
     const celebratingChore = ((entity && entity.attributes && entity.attributes.chores) || []).find(
       c => c.id === this._celebrating
     );
-    const points = (celebratingChore && celebratingChore.points) || 0;
+    const pointsRaw = celebratingChore && celebratingChore.points != null ? Number(celebratingChore.points) : 0;
+    const points = Number.isFinite(pointsRaw) ? pointsRaw : 0;
 
     return html`
       <div class="celebration-overlay" @click="${this._closeCelebration}">
@@ -2272,10 +2322,14 @@ class ChoremanderChildCard extends LitElement {
           <div class="celebration-stars">&#127775;&#127775;&#127775;</div>
           <div class="celebration-title">AWESOME!</div>
           <div class="celebration-message">You did it! Keep up the great work!</div>
-          <div class="celebration-points">
-            <ha-icon icon="${pointsIcon}"></ha-icon>
-            +${points}
-          </div>
+          ${points > 0
+            ? html`
+                <div class="celebration-points">
+                  <ha-icon icon="${pointsIcon}"></ha-icon>
+                  +${points}
+                </div>
+              `
+            : ""}
         </div>
       </div>
     `;
