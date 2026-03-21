@@ -167,6 +167,8 @@ class ChoremandorOverallStatsSensor(ChoremandorBaseSensor):
                 "assigned_to": assigned_to,
                 "completion_sound": getattr(c, 'completion_sound', 'coin'),
                 "completion_percentage_per_month": getattr(c, 'completion_percentage_per_month', 100),
+                "icon": getattr(c, "icon", "") or "",
+                "icon_white_background": getattr(c, "icon_white_background", True),
             })
 
         # Build rewards list with per-child dynamic cost calculation

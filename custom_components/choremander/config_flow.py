@@ -13,6 +13,7 @@ from homeassistant.helpers import selector
 
 from .const import (
     AVATAR_OPTIONS,
+    CHORE_ICON_EMOJI_PRESETS,
     COMPLETION_SOUND_OPTIONS,
     DAYS_OF_WEEK,
     DEFAULT_COMPLETION_SOUND,
@@ -23,8 +24,53 @@ from .const import (
     TIME_CATEGORIES,
     TIME_CATEGORY_ICONS,
 )
+from .models import Chore
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _chore_emoji_preset_selector():
+    """Dropdown: MDI, custom text, or preset emoji."""
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=[
+                selector.SelectOptionDict(value=value, label=label)
+                for value, label in CHORE_ICON_EMOJI_PRESETS
+            ],
+            mode=selector.SelectSelectorMode.DROPDOWN,
+        )
+    )
+
+
+def _resolve_chore_icon_from_input(user_input: dict[str, Any]) -> str:
+    """Icon string for storage: emoji or mdi:… from config-flow fields."""
+    preset = user_input.get("chore_emoji_preset") or "__none__"
+    if preset == "__none__":
+        return ""
+    if preset not in ("__mdi__", "__custom__"):
+        return preset
+    if preset == "__custom__":
+        custom = (user_input.get("chore_emoji_custom") or "").strip()
+        if custom:
+            return custom
+    return user_input.get("chore_icon_mdi") or "mdi:broom"
+
+
+def _chore_icon_form_defaults(chore: Chore) -> tuple[str, str, str]:
+    """Defaults for (emoji_preset, icon_mdi, emoji_custom)."""
+    ic = (getattr(chore, "icon", None) or "").strip()
+    if not ic:
+        return "__none__", "mdi:broom", ""
+    if ic.startswith("mdi:"):
+        return "__mdi__", ic, ""
+    preset_values = {
+        value
+        for value, _ in CHORE_ICON_EMOJI_PRESETS
+        if value not in ("__mdi__", "__custom__", "__none__")
+    }
+    if ic in preset_values:
+        return ic, "mdi:broom", ""
+    return "__custom__", "mdi:broom", ic
 
 
 class ChoremanderConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -253,6 +299,8 @@ class ChoremanderOptionsFlow(config_entries.OptionsFlow):
                     daily_limit=int(user_input.get("daily_limit", 1)),
                     completion_percentage_per_month=int(user_input.get("completion_percentage_per_month", 100)),
                     completion_sound=user_input.get("completion_sound", DEFAULT_COMPLETION_SOUND),
+                    icon=_resolve_chore_icon_from_input(user_input),
+                    icon_white_background=bool(user_input.get("chore_icon_white_background", True)),
                 )
                 return await self.async_step_manage_chores()
 
@@ -306,6 +354,10 @@ class ChoremanderOptionsFlow(config_entries.OptionsFlow):
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
+            vol.Required("chore_emoji_preset", default="__none__"): _chore_emoji_preset_selector(),
+            vol.Optional("chore_emoji_custom", default=""): selector.TextSelector(),
+            vol.Optional("chore_icon_mdi", default="mdi:broom"): selector.IconSelector(),
+            vol.Optional("chore_icon_white_background", default=True): selector.BooleanSelector(),
         }
 
         if child_options:
@@ -355,6 +407,8 @@ class ChoremanderOptionsFlow(config_entries.OptionsFlow):
                         daily_limit=int(user_input.get("daily_limit", 1)),
                         completion_percentage_per_month=int(user_input.get("completion_percentage_per_month", 100)),
                         completion_sound=user_input.get("completion_sound", DEFAULT_COMPLETION_SOUND),
+                        icon=_resolve_chore_icon_from_input(user_input),
+                        icon_white_background=bool(user_input.get("chore_icon_white_background", True)),
                     )
                     return await self.async_step_manage_chores()
 
@@ -411,6 +465,10 @@ class ChoremanderOptionsFlow(config_entries.OptionsFlow):
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
+            vol.Required("chore_emoji_preset", default="__none__"): _chore_emoji_preset_selector(),
+            vol.Optional("chore_emoji_custom", default=""): selector.TextSelector(),
+            vol.Optional("chore_icon_mdi", default="mdi:broom"): selector.IconSelector(),
+            vol.Optional("chore_icon_white_background", default=True): selector.BooleanSelector(),
         }
 
         if child_options:
@@ -458,6 +516,8 @@ class ChoremanderOptionsFlow(config_entries.OptionsFlow):
                 chore.daily_limit = int(user_input.get("daily_limit", chore.daily_limit))
                 chore.completion_percentage_per_month = int(user_input.get("completion_percentage_per_month", getattr(chore, 'completion_percentage_per_month', 100)))
                 chore.completion_sound = user_input.get("completion_sound", chore.completion_sound)
+                chore.icon = _resolve_chore_icon_from_input(user_input)
+                chore.icon_white_background = bool(user_input.get("chore_icon_white_background", True))
                 await self.coordinator.async_update_chore(chore)
                 return await self.async_step_manage_chores()
 
@@ -475,6 +535,9 @@ class ChoremanderOptionsFlow(config_entries.OptionsFlow):
             selector.SelectOptionDict(value=tc, label=tc.title())
             for tc in TIME_CATEGORIES
         ]
+
+        preset_def, mdi_def, custom_def = _chore_icon_form_defaults(chore)
+        icon_wb_def = getattr(chore, "icon_white_background", True)
 
         schema_dict = {
             vol.Required("name", default=chore.name): str,
@@ -511,6 +574,10 @@ class ChoremanderOptionsFlow(config_entries.OptionsFlow):
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
+            vol.Required("chore_emoji_preset", default=preset_def): _chore_emoji_preset_selector(),
+            vol.Optional("chore_emoji_custom", default=custom_def): selector.TextSelector(),
+            vol.Optional("chore_icon_mdi", default=mdi_def): selector.IconSelector(),
+            vol.Optional("chore_icon_white_background", default=icon_wb_def): selector.BooleanSelector(),
             vol.Required("action", default="save"): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=[

@@ -231,6 +231,15 @@ class ChoremanderReorderCard extends LitElement {
         color: var(--secondary-text-color);
       }
 
+      .chore-lead-icon {
+        min-width: 28px;
+        text-align: center;
+        font-size: 1.28rem;
+        line-height: 1;
+        color: var(--secondary-text-color);
+        user-select: none;
+      }
+
       .chore-info {
         flex: 1;
         display: flex;
@@ -710,6 +719,15 @@ class ChoremanderReorderCard extends LitElement {
     `;
   }
 
+  _renderChoreLeadIcon(chore) {
+    const raw = chore && chore.icon ? String(chore.icon).trim() : "";
+    const icon = raw || "mdi:broom";
+    if (icon.startsWith("mdi:")) {
+      return html`<ha-icon class="chore-icon" icon="${icon}"></ha-icon>`;
+    }
+    return html`<span class="chore-lead-icon" aria-hidden="true">${icon}</span>`;
+  }
+
   _renderChoreItem(chore, index, total, category, pointsIcon) {
     const isFirst = index === 0;
     const isLast = index === total - 1;
@@ -717,7 +735,7 @@ class ChoremanderReorderCard extends LitElement {
     return html`
       <div class="chore-item">
         <span class="order-number">${index + 1}</span>
-        <ha-icon class="chore-icon" icon="${chore.icon || "mdi:broom"}"></ha-icon>
+        ${this._renderChoreLeadIcon(chore)}
         <div class="chore-info">
           <span class="chore-name">${chore.name}</span>
           <span class="chore-points">

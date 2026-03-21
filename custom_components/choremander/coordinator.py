@@ -88,6 +88,7 @@ class ChoremanderCoordinator(DataUpdateCoordinator):
         daily_limit: int = 1,
         completion_sound: str = "coin",
         completion_percentage_per_month: int = 100,
+        icon_white_background: bool = True,
     ) -> Chore:
         """Add a new chore."""
         chore = Chore(
@@ -101,6 +102,8 @@ class ChoremanderCoordinator(DataUpdateCoordinator):
             daily_limit=daily_limit,
             completion_sound=completion_sound,
             completion_percentage_per_month=completion_percentage_per_month,
+            icon=icon,
+            icon_white_background=icon_white_background,
         )
         self.storage.add_chore(chore)
         await self.storage.async_save()
@@ -119,6 +122,7 @@ class ChoremanderCoordinator(DataUpdateCoordinator):
         daily_limit: int = 1,
         completion_sound: str = "coin",
         completion_percentage_per_month: int = 100,
+        icon_white_background: bool = True,
     ) -> list[Chore]:
         """Add multiple chores at once with shared settings."""
         chores = []
@@ -137,6 +141,8 @@ class ChoremanderCoordinator(DataUpdateCoordinator):
                 daily_limit=daily_limit,
                 completion_sound=completion_sound,
                 completion_percentage_per_month=completion_percentage_per_month,
+                icon=icon,
+                icon_white_background=icon_white_background,
             )
             self.storage.add_chore(chore)
             chores.append(chore)

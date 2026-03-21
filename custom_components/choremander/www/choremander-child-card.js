@@ -869,9 +869,24 @@ class ChoremanderChildCard extends LitElement {
         border-color: color-mix(in srgb, var(--uniform-chore-color) 35%, rgba(0, 0, 0, 0.10));
       }
 
+      .chore-icon-chip--white,
+      .chores-container[data-chore-color]:not([data-chore-color="default"]) .chore-icon-chip--white {
+        background: #fff !important;
+        border-color: rgba(0, 0, 0, 0.08) !important;
+      }
+
       .chore-icon-chip ha-icon {
         --mdc-icon-size: 22px;
         color: var(--primary-text-color);
+      }
+
+      .chore-emoji {
+        font-size: 1.45rem;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        user-select: none;
       }
 
       /* Chore number wrapper (icon removed) */
@@ -976,18 +991,12 @@ class ChoremanderChildCard extends LitElement {
         line-height: 1.2;
       }
 
-      .chore-points {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: var(--chore-points-font-size, 1.05rem);
+      .chore-daily-limit {
+        font-size: var(--chore-points-font-size, 0.88rem);
         color: var(--child-card-chore-text-color, var(--secondary-text-color));
         font-weight: 600;
-      }
-
-      .chore-points ha-icon {
-        --mdc-icon-size: var(--chore-stars-icon-size, 24px);
-        color: var(--warning-color, var(--fun-yellow));
+        opacity: 0.82;
+        letter-spacing: 0.01em;
       }
 
       @keyframes spin {
@@ -1018,7 +1027,7 @@ class ChoremanderChildCard extends LitElement {
         color: var(--child-card-chore-text-color, var(--primary-text-color));
       }
 
-      .chore-card.completed .chore-points {
+      .chore-card.completed .chore-daily-limit {
         color: var(--child-card-chore-text-color, var(--secondary-text-color));
         opacity: 0.85;
       }
@@ -1304,29 +1313,23 @@ class ChoremanderChildCard extends LitElement {
           font-size: var(--chore-name-font-size, 1.7rem);
         }
 
-        .chore-points {
-          font-size: var(--chore-points-font-size, 1.4rem);
+        .chore-daily-limit {
+          font-size: var(--chore-points-font-size, 1.15rem);
         }
       }
 
       .chore-card[line-size="small"] .chore-name {
         font-size: 1rem;
       }
-      .chore-card[line-size="small"] .chore-points {
+      .chore-card[line-size="small"] .chore-daily-limit {
         font-size: 0.8rem;
-      }
-      .chore-card[line-size="small"] .chore-points ha-icon {
-        --mdc-icon-size: 18px;
       }
 
       .chore-card[line-size="large"] .chore-name {
         font-size: 2rem;
       }
-      .chore-card[line-size="large"] .chore-points {
-        font-size: 1.5rem;
-      }
-      .chore-card[line-size="large"] .chore-points ha-icon {
-        --mdc-icon-size: 32px;
+      .chore-card[line-size="large"] .chore-daily-limit {
+        font-size: 1.25rem;
       }
     `;
   }
@@ -1571,7 +1574,6 @@ class ChoremanderChildCard extends LitElement {
                   activeCategory,
                   chores: childChoresSorted,
                   child,
-                  pointsIcon,
                   todaysCompletions,
                   sortDoneLast,
                 })}
@@ -1831,7 +1833,7 @@ class ChoremanderChildCard extends LitElement {
     return "anytime";
   }
 
-  _renderChoresByTimeCategory({ activeCategory, chores, child, pointsIcon, todaysCompletions, sortDoneLast }) {
+  _renderChoresByTimeCategory({ activeCategory, chores, child, todaysCompletions, sortDoneLast }) {
     const timeCategories = ["morning", "afternoon", "evening", "night", "anytime"];
 
     // When filtering to a single category, keep legacy behavior:
@@ -1868,7 +1870,7 @@ class ChoremanderChildCard extends LitElement {
             </div>
             <div class="time-category-chores">
               ${sorted.map((chore, index) =>
-                this._renderChoreCard(chore, child, pointsIcon, todaysCompletions, index)
+                this._renderChoreCard(chore, child, todaysCompletions, index)
               )}
             </div>
           </div>
@@ -2104,7 +2106,11 @@ class ChoremanderChildCard extends LitElement {
     `;
   }
 
-  _renderChoreCard(chore, child, pointsIcon, todaysCompletions = [], choreIndex = 0) {
+  _isChoreIconMdi(icon) {
+    return typeof icon === "string" && icon.startsWith("mdi:");
+  }
+
+  _renderChoreCard(chore, child, todaysCompletions = [], choreIndex = 0) {
     const isLoading = this._loading[chore.id];
     const isCelebrating = this._celebrating === chore.id;
 
@@ -2166,7 +2172,9 @@ class ChoremanderChildCard extends LitElement {
     // Chore number (1-indexed for display) and color class (cycle through 8 colors)
     const choreNumber = choreIndex + 1;
     const colorClass = `color-${choreIndex % 8}`;
-    const choreIcon = (chore && chore.icon) ? String(chore.icon) : null;
+    const choreIconRaw = chore && chore.icon ? String(chore.icon).trim() : "";
+    const hasChoreIcon = !!choreIconRaw;
+    const iconWhiteBg = chore.icon_white_background !== false;
 
     // Click handler for the entire row
     const handleRowClick = () => {
@@ -2194,10 +2202,12 @@ class ChoremanderChildCard extends LitElement {
       >
         <div class="chore-info">
           <div class="chore-number-wrapper">
-            ${choreIcon
+            ${hasChoreIcon
               ? html`
-                  <div class="chore-icon-chip">
-                    <ha-icon icon="${choreIcon}"></ha-icon>
+                  <div class="chore-icon-chip ${iconWhiteBg ? "chore-icon-chip--white" : ""}">
+                    ${this._isChoreIconMdi(choreIconRaw)
+                      ? html`<ha-icon icon="${choreIconRaw}"></ha-icon>`
+                      : html`<span class="chore-emoji" aria-hidden="true">${choreIconRaw}</span>`}
                   </div>
                 `
               : html`<div class="chore-number-badge ${colorClass}">${choreNumber}</div>`
@@ -2205,11 +2215,9 @@ class ChoremanderChildCard extends LitElement {
           </div>
           <div class="chore-details">
             <div class="chore-name">${chore.name}</div>
-            <div class="chore-points">
-              <ha-icon icon="${pointsIcon}"></ha-icon>
-              +${chore.points}
-              ${dailyLimit > 1 ? html`<span style="font-size: 0.8em; opacity: 0.7;">(${completionsToday}/${dailyLimit})</span>` : ''}
-            </div>
+            ${dailyLimit > 1
+              ? html`<div class="chore-daily-limit">${completionsToday}/${dailyLimit} today</div>`
+              : ""}
           </div>
         </div>
         <div class="chore-checkbox">

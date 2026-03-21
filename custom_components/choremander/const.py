@@ -222,3 +222,29 @@ DEFAULT_COMPLETION_SOUND: Final = "coin"
 
 # Chore keys (sound-related)
 CONF_CHORE_COMPLETION_SOUND: Final = "completion_sound"
+
+# Preset emoji / MDI mode for chore icon in config flow (value, label)
+CHORE_ICON_EMOJI_PRESETS: Final = [
+    ("__none__", "No icon — numbered badge on card"),
+    ("__mdi__", "Material icon (picker below)"),
+    ("__custom__", "Custom emoji (text field below)"),
+    ("🪥", "🪥 Brush teeth"),
+    ("🛁", "🛁 Bath / shower"),
+    ("🚽", "🚽 Potty / bathroom"),
+    ("🧼", "🧼 Wash hands"),
+    ("🍽️", "🍽️ Dishes"),
+    ("🧹", "🧹 Sweep / clean"),
+    ("🧺", "🧺 Laundry"),
+    ("🛏️", "🛏️ Make bed"),
+    ("🧸", "🧸 Toys / tidy room"),
+    ("📚", "📚 Homework / reading"),
+    ("🐕", "🐕 Pet care"),
+    ("🗑️", "🗑️ Trash"),
+    ("🌱", "🌱 Plants / garden"),
+    ("👟", "👟 Shoes / get ready"),
+    ("🎒", "🎒 Backpack / school prep"),
+    ("😴", "😴 Bedtime"),
+    ("🌙", "🌙 Night routine"),
+    ("☀️", "☀️ Morning routine"),
+    ("🥤", "🥤 Snack / water"),
+]

@@ -112,6 +112,8 @@ class Chore:
     daily_limit: int = 1
     completion_sound: str = "coin"  # Sound to play on completion
     completion_percentage_per_month: int = 100  # Expected completion rate (100 = every day)
+    icon: str = ""  # mdi:name and/or emoji; empty = numbered badge on child card
+    icon_white_background: bool = True  # If False, icon chip tints with chore row color
     id: str = field(default_factory=generate_id)
 
     @classmethod
@@ -128,6 +130,8 @@ class Chore:
             daily_limit=data.get("daily_limit", 1),
             completion_sound=data.get("completion_sound", "coin"),
             completion_percentage_per_month=data.get("completion_percentage_per_month", 100),
+            icon=data.get("icon", ""),
+            icon_white_background=data.get("icon_white_background", True),
             id=data.get("id", generate_id()),
         )
 
@@ -144,6 +148,8 @@ class Chore:
             "daily_limit": self.daily_limit,
             "completion_sound": self.completion_sound,
             "completion_percentage_per_month": self.completion_percentage_per_month,
+            "icon": self.icon,
+            "icon_white_background": self.icon_white_background,
             "id": self.id,
         }
 
