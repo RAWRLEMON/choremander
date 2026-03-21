@@ -945,12 +945,12 @@ class ChoremanderChildCard extends LitElement {
 
       /* Checkbox for chore completion */
       .chore-checkbox {
-        width: 36px;
-        height: 36px;
-        min-width: 36px;
+        width: calc(36px * var(--chore-checkbox-scale, 1));
+        height: calc(36px * var(--chore-checkbox-scale, 1));
+        min-width: calc(36px * var(--chore-checkbox-scale, 1));
         border-radius: 999px;
         border: 2px solid rgba(0, 0, 0, 0.18);
-        background: white;
+        background: transparent;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -960,7 +960,7 @@ class ChoremanderChildCard extends LitElement {
       }
 
       .chore-checkbox ha-icon {
-        --mdc-icon-size: 22px;
+        --mdc-icon-size: calc(22px * var(--chore-checkbox-scale, 1));
         color: transparent;
         transition: all 0.2s ease;
       }
@@ -968,18 +968,22 @@ class ChoremanderChildCard extends LitElement {
       /* Unchecked state - hover effect */
       .chore-card:not(.completed):hover .chore-checkbox {
         border-color: var(--uniform-chore-color, var(--fun-green));
-        background: color-mix(in srgb, var(--uniform-chore-color, var(--fun-green)) 12%, white);
+        background: transparent;
       }
 
       /* Checked state */
       .chore-card.completed .chore-checkbox {
-        border-color: var(--fun-green);
-        background: var(--fun-green);
-        box-shadow: 0 2px 8px rgba(46, 204, 113, 0.35);
+        border-color: color-mix(
+          in srgb,
+          var(--child-card-chore-text-color, var(--primary-text-color)) 45%,
+          rgba(0, 0, 0, 0.18)
+        );
+        background: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
       }
 
       .chore-card.completed .chore-checkbox ha-icon {
-        color: white;
+        color: var(--child-card-chore-text-color, var(--primary-text-color));
       }
 
       .chore-details {
@@ -1027,16 +1031,30 @@ class ChoremanderChildCard extends LitElement {
 
       /* Chore card in completed state - faded green styling */
       .chore-card.completed {
-        opacity: 0.72;
         border-left-color: var(--fun-green) !important;
         background-image: none;
-        background: rgba(255, 255, 255, 0.50);
         filter: saturate(0.9);
+        opacity: 1;
+      }
+
+      /* Darken (tint) the completed chore card background.
+         Implemented as an overlay so text/checkbox styles don't get "washed out" by opacity. */
+      .chore-card.completed::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, var(--chore-completed-tint-level, 0.14));
+        z-index: 0;
+        pointer-events: none;
+      }
+
+      .chore-card.completed > * {
+        position: relative;
+        z-index: 1;
       }
 
       /* If a uniform chore color is set, keep completed tiles in that color */
       .chores-container[data-chore-color]:not([data-chore-color="default"]) .chore-card.completed {
-        background: var(--uniform-chore-color);
         filter: saturate(0.85);
       }
 
@@ -1267,13 +1285,13 @@ class ChoremanderChildCard extends LitElement {
         }
 
         .chore-checkbox {
-          width: 40px;
-          height: 40px;
-          min-width: 40px;
+          width: calc(40px * var(--chore-checkbox-scale, 1));
+          height: calc(40px * var(--chore-checkbox-scale, 1));
+          min-width: calc(40px * var(--chore-checkbox-scale, 1));
         }
 
         .chore-checkbox ha-icon {
-          --mdc-icon-size: 24px;
+          --mdc-icon-size: calc(24px * var(--chore-checkbox-scale, 1));
         }
 
         .chore-name {
@@ -1288,9 +1306,9 @@ class ChoremanderChildCard extends LitElement {
         }
 
         .chore-checkbox {
-          width: 42px;
-          height: 42px;
-          min-width: 42px;
+          width: calc(42px * var(--chore-checkbox-scale, 1));
+          height: calc(42px * var(--chore-checkbox-scale, 1));
+          min-width: calc(42px * var(--chore-checkbox-scale, 1));
         }
       }
 
@@ -1325,14 +1343,14 @@ class ChoremanderChildCard extends LitElement {
         }
 
         .chore-checkbox {
-          width: 50px;
-          height: 50px;
-          min-width: 50px;
+          width: calc(50px * var(--chore-checkbox-scale, 1));
+          height: calc(50px * var(--chore-checkbox-scale, 1));
+          min-width: calc(50px * var(--chore-checkbox-scale, 1));
           border-radius: 999px;
         }
 
         .chore-checkbox ha-icon {
-          --mdc-icon-size: 32px;
+          --mdc-icon-size: calc(32px * var(--chore-checkbox-scale, 1));
         }
 
         .chore-name {
@@ -1394,6 +1412,8 @@ class ChoremanderChildCard extends LitElement {
       time_category_header_font_size: "default",
       chore_box_font_size: "default",
       chore_emoji_box_scale: "default",
+      chore_checkbox_scale: "default",
+      chore_completed_tint_level: "default",
       chore_padding: "20px 24px",
       chore_color: "default", // "default" for alternating colors, or a color value like "#ff6b9d"
       card_background_color: "default", // "default" keeps existing theme/default background behavior
@@ -1438,6 +1458,8 @@ class ChoremanderChildCard extends LitElement {
       time_category_header_font_size: "default",
       chore_box_font_size: "default",
       chore_emoji_box_scale: "default",
+      chore_checkbox_scale: "default",
+      chore_completed_tint_level: "default",
     };
   }
 
@@ -1674,6 +1696,12 @@ class ChoremanderChildCard extends LitElement {
     const emojiBoxScale = this._getChoreEmojiBoxScaleCss();
     if (emojiBoxScale) parts.push(emojiBoxScale);
 
+    const checkboxScale = this._getChoreCheckboxScaleCss();
+    if (checkboxScale) parts.push(checkboxScale);
+
+    const completedTintLevel = this._getChoreCompletedTintCss();
+    if (completedTintLevel) parts.push(completedTintLevel);
+
     const borderWidth = this._getCardBorderWidthCss();
     if (borderWidth) parts.push(`--child-card-border-width: ${borderWidth}`);
 
@@ -1820,6 +1848,28 @@ class ChoremanderChildCard extends LitElement {
 
     // Numeric scale multiplier; CSS uses this to scale the emoji chip and emoji font.
     return `--chore-emoji-box-scale: ${num}`;
+  }
+
+  _getChoreCheckboxScaleCss() {
+    const raw = this.config ? this.config.chore_checkbox_scale : undefined;
+    if (!raw || raw === "default") return null;
+
+    const num = this._parseNumericFontSizePx(raw);
+    if (num == null || !Number.isFinite(num) || num <= 0) return null;
+
+    return `--chore-checkbox-scale: ${num}`;
+  }
+
+  _getChoreCompletedTintCss() {
+    const raw = this.config ? this.config.chore_completed_tint_level : undefined;
+    if (!raw || raw === "default") return null;
+
+    const num = this._parseNumericFontSizePx(raw);
+    if (num == null || !Number.isFinite(num)) return null;
+
+    // Keep within a sensible alpha range so the UI doesn't become unreadable.
+    const clamped = Math.max(0, Math.min(0.5, num));
+    return `--chore-completed-tint-level: ${clamped}`;
   }
 
   _parseNumericFontSizePx(value) {
@@ -3032,6 +3082,37 @@ class ChoremanderChildCardEditor extends LitElement {
       </div>
 
       <div class="form-group">
+        <label>Chore Checkbox Scale</label>
+        <input
+          type="number"
+          min="0.1"
+          step="0.05"
+          .value="${this._getNumericFontSizeInputValue(this.config.chore_checkbox_scale)}"
+          @input="${this._choreCheckboxScaleChanged}"
+          placeholder="Default (1.0)"
+        />
+        <small>
+          Scales the chore checkbox circle and checkmark icon size.
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label>Chore Completed Tint Level</label>
+        <input
+          type="number"
+          min="0"
+          max="0.5"
+          step="0.01"
+          .value="${this._getNumericFontSizeInputValue(this.config.chore_completed_tint_level)}"
+          @input="${this._choreCompletedTintLevelChanged}"
+          placeholder="Default (0.14)"
+        />
+        <small>
+          Darkens the completed chore box background. Higher = darker (0.00 disables tint).
+        </small>
+      </div>
+
+      <div class="form-group">
         <label>Card Border Width</label>
         <input
           type="number"
@@ -3131,6 +3212,14 @@ class ChoremanderChildCardEditor extends LitElement {
 
   _choreEmojiBoxScaleChanged(e) {
     this._updateConfig("chore_emoji_box_scale", e.target.value);
+  }
+
+  _choreCheckboxScaleChanged(e) {
+    this._updateConfig("chore_checkbox_scale", e.target.value);
+  }
+
+  _choreCompletedTintLevelChanged(e) {
+    this._updateConfig("chore_completed_tint_level", e.target.value);
   }
 
   _cardBorderWidthChanged(e) {
