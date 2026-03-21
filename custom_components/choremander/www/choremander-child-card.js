@@ -966,6 +966,9 @@ class ChoremanderChildCard extends LitElement {
         --mdc-icon-size: calc(22px * var(--chore-checkbox-scale, 1));
         color: transparent;
         transition: all 0.2s ease;
+        display: block;
+        line-height: 1;
+        transform: translateY(-0.5px);
       }
 
       /* Unchecked state - hover keeps same border as chore text (exact match) */
@@ -974,15 +977,15 @@ class ChoremanderChildCard extends LitElement {
         background: transparent;
       }
 
-      /* Checked: transparent fill so chore card background shows; border + checkmark = text color */
+      /* Checked: solid text-color fill with white checkmark */
       .chore-card.completed .chore-checkbox {
         border-color: var(--child-card-chore-text-color, var(--primary-text-color));
-        background: transparent;
+        background: var(--child-card-chore-text-color, var(--primary-text-color));
         box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
       }
 
       .chore-card.completed .chore-checkbox ha-icon {
-        color: var(--child-card-chore-text-color, var(--primary-text-color));
+        color: white;
       }
 
       .chore-details {
@@ -1063,7 +1066,13 @@ class ChoremanderChildCard extends LitElement {
 
       /* If a uniform chore color is set, keep completed tiles in that color */
       .chores-container[data-chore-color]:not([data-chore-color="default"]) .chore-card.completed {
+        background: var(--uniform-chore-completed-color, var(--uniform-chore-bg-dark, var(--uniform-chore-color)));
         filter: saturate(0.85);
+      }
+
+      /* In uniform-color mode, use the computed darker shade directly (no black overlay). */
+      .chores-container[data-chore-color]:not([data-chore-color="default"]) .chore-card.completed::before {
+        display: none;
       }
 
       .chore-card.completed .chore-icon-container {
@@ -1498,9 +1507,12 @@ class ChoremanderChildCard extends LitElement {
       // Use the picked color directly for the column background,
       // and derive subtle variants for inner tiles/borders via CSS.
       const slightlyDarker = this._lightenColor(color, -0.06);
+      const completedDarken = this._getChoreCompletedTintLevelNumber();
+      const completedColor = this._lightenColor(color, -completedDarken);
       this.style.setProperty("--uniform-chore-color", color);
       this.style.setProperty("--uniform-chore-bg-light", color);
       this.style.setProperty("--uniform-chore-bg-dark", slightlyDarker);
+      this.style.setProperty("--uniform-chore-completed-color", completedColor);
     }
 
     // Get child info
@@ -1879,6 +1891,14 @@ class ChoremanderChildCard extends LitElement {
     const blackFraction = Math.max(0, Math.min(0.5, num));
     const basePct = Math.round((1 - blackFraction) * 1000) / 10;
     return `--chore-completed-base-mix-pct: ${basePct}%`;
+  }
+
+  _getChoreCompletedTintLevelNumber() {
+    const raw = this.config ? this.config.chore_completed_tint_level : undefined;
+    if (raw === undefined || raw === null || raw === "" || raw === "default") return 0.14;
+    const num = this._parseNumericFontSizePx(raw);
+    if (num == null || !Number.isFinite(num)) return 0.14;
+    return Math.max(0, Math.min(0.5, num));
   }
 
   _parseNumericFontSizePx(value) {
