@@ -428,8 +428,6 @@ class ChoremanderChildCard extends LitElement {
         --fun-cyan: #67e8f9;
         /* Uniform color variables - will be set dynamically */
         --uniform-chore-color: var(--fun-blue);
-        --uniform-chore-bg-light: #eff6ff;
-        --uniform-chore-bg-dark: #dbeafe;
         --child-card-border-width: 1px;
         --child-card-accent-width: 10px;
         --child-card-bg-color: #ffffff;
@@ -756,7 +754,6 @@ class ChoremanderChildCard extends LitElement {
 
       /* Individual chore card - optimized for tablet touch, ENTIRE ROW IS CLICKABLE */
       .chore-card {
-        /* Used to darken completed rows with color-mix (same hue, darker shade) */
         --chore-card-base-bg: #ffffff;
         background: var(--chore-card-base-bg);
         border-radius: 14px;
@@ -942,8 +939,7 @@ class ChoremanderChildCard extends LitElement {
 
       /* Completed state for number badge */
       .chore-card.completed .chore-number-badge {
-        filter: saturate(0.5);
-        opacity: 0.7;
+        opacity: 0.92;
       }
 
       /* Checkbox for chore completion */
@@ -1031,48 +1027,16 @@ class ChoremanderChildCard extends LitElement {
         to { transform: rotate(360deg); }
       }
 
-      /* Chore card in completed state - faded green styling */
+      /* Chore card when completed: solid background (no overlay tint). Override via --chore-completed-bg. */
       .chore-card.completed {
         border-left-color: var(--fun-green) !important;
+        background: var(--chore-completed-bg, #e8f5e9);
         background-image: none;
-        filter: saturate(0.9);
-        opacity: 1;
       }
 
-      /* Darken completed row: mix row base color toward black (blue→dark blue, red→dark red, etc.) */
-      .chore-card.completed::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: color-mix(
-          in srgb,
-          var(--chore-card-base-bg) var(--chore-completed-base-mix-pct, 86%),
-          black
-        );
-        z-index: 0;
-        pointer-events: none;
-      }
-
-      @supports not (background: color-mix(in srgb, white 50%, black)) {
-        .chore-card.completed::before {
-          background: rgba(0, 0, 0, 0.14);
-        }
-      }
-
-      .chore-card.completed > * {
-        position: relative;
-        z-index: 1;
-      }
-
-      /* If a uniform chore color is set, keep completed tiles in that color */
+      /* Uniform chore color: same completed background variable (config sets --chore-completed-bg on the card). */
       .chores-container[data-chore-color]:not([data-chore-color="default"]) .chore-card.completed {
-        background: var(--uniform-chore-completed-color, var(--uniform-chore-bg-dark, var(--uniform-chore-color)));
-        filter: saturate(0.85);
-      }
-
-      /* In uniform-color mode, use the computed darker shade directly (no black overlay). */
-      .chores-container[data-chore-color]:not([data-chore-color="default"]) .chore-card.completed::before {
-        display: none;
+        background: var(--chore-completed-bg, #e8f5e9);
       }
 
       .chore-card.completed .chore-icon-container {
@@ -1430,7 +1394,7 @@ class ChoremanderChildCard extends LitElement {
       chore_box_font_size: "default",
       chore_emoji_box_scale: "default",
       chore_checkbox_scale: "default",
-      chore_completed_tint_level: "default",
+      chore_completed_background_color: "default",
       chore_padding: "20px 24px",
       chore_color: "default", // "default" for alternating colors, or a color value like "#ff6b9d"
       card_background_color: "default", // "default" keeps existing theme/default background behavior
@@ -1476,7 +1440,7 @@ class ChoremanderChildCard extends LitElement {
       chore_box_font_size: "default",
       chore_emoji_box_scale: "default",
       chore_checkbox_scale: "default",
-      chore_completed_tint_level: "default",
+      chore_completed_background_color: "default",
     };
   }
 
@@ -1504,15 +1468,7 @@ class ChoremanderChildCard extends LitElement {
     // Set uniform color CSS variables if chore_color is specified
     if (this.config.chore_color && this.config.chore_color !== "default") {
       const color = this.config.chore_color;
-      // Use the picked color directly for the column background,
-      // and derive subtle variants for inner tiles/borders via CSS.
-      const slightlyDarker = this._lightenColor(color, -0.06);
-      const completedDarken = this._getChoreCompletedTintLevelNumber();
-      const completedColor = this._lightenColor(color, -completedDarken);
       this.style.setProperty("--uniform-chore-color", color);
-      this.style.setProperty("--uniform-chore-bg-light", color);
-      this.style.setProperty("--uniform-chore-bg-dark", slightlyDarker);
-      this.style.setProperty("--uniform-chore-completed-color", completedColor);
     }
 
     // Get child info
@@ -1723,8 +1679,8 @@ class ChoremanderChildCard extends LitElement {
     const checkboxScale = this._getChoreCheckboxScaleCss();
     if (checkboxScale) parts.push(checkboxScale);
 
-    const completedTintLevel = this._getChoreCompletedTintCss();
-    if (completedTintLevel) parts.push(completedTintLevel);
+    const completedBg = this._getChoreCompletedBackgroundCss();
+    if (completedBg) parts.push(completedBg);
 
     const borderWidth = this._getCardBorderWidthCss();
     if (borderWidth) parts.push(`--child-card-border-width: ${borderWidth}`);
@@ -1884,25 +1840,12 @@ class ChoremanderChildCard extends LitElement {
     return `--chore-checkbox-scale: ${num}`;
   }
 
-  _getChoreCompletedTintCss() {
-    const raw = this.config ? this.config.chore_completed_tint_level : undefined;
+  _getChoreCompletedBackgroundCss() {
+    const raw = this.config ? this.config.chore_completed_background_color : undefined;
     if (!raw || raw === "default") return null;
-
-    const num = this._parseNumericFontSizePx(raw);
-    if (num == null || !Number.isFinite(num)) return null;
-
-    // Amount of black mixed into the row base color (0 = unchanged, 0.5 = half black).
-    const blackFraction = Math.max(0, Math.min(0.5, num));
-    const basePct = Math.round((1 - blackFraction) * 1000) / 10;
-    return `--chore-completed-base-mix-pct: ${basePct}%`;
-  }
-
-  _getChoreCompletedTintLevelNumber() {
-    const raw = this.config ? this.config.chore_completed_tint_level : undefined;
-    if (raw === undefined || raw === null || raw === "" || raw === "default") return 0.14;
-    const num = this._parseNumericFontSizePx(raw);
-    if (num == null || !Number.isFinite(num)) return 0.14;
-    return Math.max(0, Math.min(0.5, num));
+    const value = String(raw).trim();
+    if (!/^#[0-9a-fA-F]{6}$/.test(value)) return null;
+    return `--chore-completed-bg: ${value}`;
   }
 
   _parseNumericFontSizePx(value) {
@@ -2818,6 +2761,12 @@ class ChoremanderChildCardEditor extends LitElement {
     return this._isValidHexColor(value) ? value : "#1f2937";
   }
 
+  _getEditorChoreCompletedBackgroundColorValue() {
+    const value = this.config ? this.config.chore_completed_background_color : undefined;
+    if (!value || value === "default") return "#e8f5e9";
+    return this._isValidHexColor(value) ? value : "#e8f5e9";
+  }
+
   _getNumericFontSizeInputValue(value) {
     if (value === undefined || value === null) return "";
     const s = String(value).trim().toLowerCase();
@@ -3172,19 +3121,30 @@ class ChoremanderChildCardEditor extends LitElement {
       </div>
 
       <div class="form-group">
-        <label>Chore Completed Tint Level</label>
-        <input
-          type="number"
-          min="0"
-          max="0.5"
-          step="0.01"
-          .value="${this._getNumericFontSizeInputValue(this.config.chore_completed_tint_level)}"
-          @input="${this._choreCompletedTintLevelChanged}"
-          placeholder="Default (0.14)"
-        />
+        <label>Completed Chore Background</label>
+        <div class="color-row">
+          <input
+            type="color"
+            .value="${this._getEditorChoreCompletedBackgroundColorValue()}"
+            @input="${this._choreCompletedBackgroundColorPicked}"
+            title="Pick completed chore row background"
+          />
+          <input
+            class="hex-input"
+            type="text"
+            .value="${this._getEditorChoreCompletedBackgroundColorValue()}"
+            @input="${this._choreCompletedBackgroundColorTextChanged}"
+            placeholder="#RRGGBB"
+            inputmode="text"
+            autocomplete="off"
+          />
+          <button class="inline-button" @click="${this._resetChoreCompletedBackgroundColor}">
+            Default
+          </button>
+        </div>
         <small>
-          Darkens completed rows by mixing the row color toward black (same hue, darker). Higher =
-          stronger (0.00 = no change). Default ≈ 0.14 when blank.
+          Solid background for a chore row when it is checked off (no tint/overlay). Leave as Default
+          for a soft green (#e8f5e9).
         </small>
       </div>
 
@@ -3294,10 +3254,6 @@ class ChoremanderChildCardEditor extends LitElement {
     this._updateConfig("chore_checkbox_scale", e.target.value);
   }
 
-  _choreCompletedTintLevelChanged(e) {
-    this._updateConfig("chore_completed_tint_level", e.target.value);
-  }
-
   _cardBorderWidthChanged(e) {
     this._updateConfig("card_border_width", e.target.value);
   }
@@ -3377,6 +3333,24 @@ class ChoremanderChildCardEditor extends LitElement {
 
   _resetChoreTextColor() {
     this._updateConfig("chore_text_color", "default");
+  }
+
+  _choreCompletedBackgroundColorPicked(e) {
+    const value = e.target.value;
+    if (this._isValidHexColor(value)) {
+      this._updateConfig("chore_completed_background_color", value);
+    }
+  }
+
+  _choreCompletedBackgroundColorTextChanged(e) {
+    const value = String(e.target.value || "").trim();
+    if (this._isValidHexColor(value)) {
+      this._updateConfig("chore_completed_background_color", value);
+    }
+  }
+
+  _resetChoreCompletedBackgroundColor() {
+    this._updateConfig("chore_completed_background_color", "default");
   }
 
   _choreColorTextChanged(e) {
