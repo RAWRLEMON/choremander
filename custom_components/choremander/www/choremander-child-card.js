@@ -436,6 +436,7 @@ class ChoremanderChildCard extends LitElement {
         --child-card-font-family: var(--primary-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif);
         --child-card-header-text-color: var(--primary-text-color);
         --child-card-chore-text-color: var(--primary-text-color);
+        --chore-box-border-width: 1px;
       }
 
       ha-card {
@@ -763,8 +764,10 @@ class ChoremanderChildCard extends LitElement {
         justify-content: space-between;
         gap: 16px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        border-left: 0;
+        border-style: solid;
+        border-color: rgba(0, 0, 0, 0.08);
+        border-width: var(--chore-box-border-width, 1px) var(--chore-box-border-width, 1px)
+          var(--chore-box-border-width, 1px) 0;
         transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.18s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         overflow: hidden;
@@ -1352,6 +1355,7 @@ class ChoremanderChildCard extends LitElement {
       header_text_color: "default", // Child name + time-category filter/header text color
       chore_text_color: "default", // Chore box text color
       card_border_width: "1", // Border thickness (px) when chore_color is set
+      chore_box_border_width: "default", // px width for each chore row outline; 0 = none
       height: null, // e.g. "420px", "60vh", or 420 (pixels)
       ...config,
     };
@@ -1624,6 +1628,9 @@ class ChoremanderChildCard extends LitElement {
     const borderWidth = this._getCardBorderWidthCss();
     if (borderWidth) parts.push(`--child-card-border-width: ${borderWidth}`);
 
+    const choreBoxBorderWidth = this._getChoreBoxBorderWidthCss();
+    if (choreBoxBorderWidth !== null) parts.push(`--chore-box-border-width: ${choreBoxBorderWidth}`);
+
     const cardBackgroundColor = this._getCardBackgroundColorCss();
     if (cardBackgroundColor) parts.push(`--child-card-bg-color: ${cardBackgroundColor}`);
 
@@ -1690,6 +1697,32 @@ class ChoremanderChildCard extends LitElement {
 
   _getCardBorderWidthCss() {
     const raw = this.config ? this.config.card_border_width : undefined;
+    if (raw === undefined || raw === null || raw === "" || raw === "default") {
+      return null;
+    }
+
+    if (typeof raw === "number" && Number.isFinite(raw)) {
+      return `${raw}px`;
+    }
+
+    if (typeof raw !== "string") {
+      return null;
+    }
+
+    const value = raw.trim().toLowerCase();
+    if (!value) return null;
+
+    const pxMatch = value.match(/^(-?\d+(?:\.\d+)?)px$/);
+    if (pxMatch) return `${Number(pxMatch[1])}px`;
+
+    const numericMatch = value.match(/^-?\d+(?:\.\d+)?$/);
+    if (numericMatch) return `${Number(value)}px`;
+
+    return null;
+  }
+
+  _getChoreBoxBorderWidthCss() {
+    const raw = this.config ? this.config.chore_box_border_width : undefined;
     if (raw === undefined || raw === null || raw === "" || raw === "default") {
       return null;
     }
@@ -2911,6 +2944,21 @@ class ChoremanderChildCardEditor extends LitElement {
       </div>
 
       <div class="form-group">
+        <label>Chore Box Border Width</label>
+        <input
+          type="number"
+          min="0"
+          step="0.5"
+          .value="${this._getNumericFontSizeInputValue(this.config.chore_box_border_width)}"
+          @input="${this._choreBoxBorderWidthChanged}"
+          placeholder="Default (1 px)"
+        />
+        <small>
+          Outline thickness for each chore row (px). Use 0 for no border. Leave blank for the default 1px.
+        </small>
+      </div>
+
+      <div class="form-group">
         <label>Chore Padding</label>
         <input
           type="text"
@@ -2980,6 +3028,10 @@ class ChoremanderChildCardEditor extends LitElement {
 
   _cardBorderWidthChanged(e) {
     this._updateConfig("card_border_width", e.target.value);
+  }
+
+  _choreBoxBorderWidthChanged(e) {
+    this._updateConfig("chore_box_border_width", e.target.value);
   }
 
   _lineSizeChanged(e) {
