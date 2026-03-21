@@ -1229,54 +1229,134 @@ class ChoremanderChildCard extends LitElement {
       /* Portrait tablets and phones */
       @media (max-width: 600px) {
         .card-header {
-          flex-direction: column;
-          gap: 16px;
-          text-align: center;
-          padding: 24px 20px;
+          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          text-align: left;
+          padding: 14px 12px;
         }
 
         .child-info {
-          flex-direction: column;
+          flex-direction: row;
+          align-items: center;
+          gap: 10px;
+          flex: 1 1 auto;
+          min-width: 0;
+        }
+
+        .avatar-container {
+          width: 48px;
+          height: 48px;
+        }
+
+        .avatar-container ha-icon {
+          --mdc-icon-size: 34px;
+        }
+
+        .child-name {
+          font-size: var(--child-name-font-size, clamp(0.95rem, 3.8vw, 1.2rem));
+        }
+
+        .points-display {
+          padding: 8px 10px;
+          border-radius: 12px;
+          max-width: 52%;
+          flex: 0 1 auto;
+        }
+
+        .stars-value {
+          font-size: clamp(0.9rem, 3.2vw, 1.2rem);
+        }
+
+        .stars-value.waiting-stars {
+          font-size: clamp(0.8rem, 3vw, 1rem);
+        }
+
+        .stars-label {
+          font-size: clamp(0.5rem, 1.8vw, 0.62rem);
         }
 
         .chores-container {
-          padding: 24px 16px;
-          gap: 20px;
+          padding: 14px 10px 12px;
+          gap: 12px;
         }
 
         .chore-card {
-          padding: 16px 18px;
-          flex-wrap: wrap;
+          padding: 12px 10px;
+          flex-wrap: nowrap;
+          align-items: center;
+          gap: 8px;
         }
 
         .chore-info {
-          flex: 1 1 100%;
-          margin-bottom: 12px;
-        }
-
-        .chore-number-wrapper {
+          flex: 1 1 auto;
+          min-width: 0;
+          margin-bottom: 0;
           gap: 10px;
         }
 
+        .chore-number-wrapper {
+          gap: 8px;
+        }
+
         .chore-number-badge {
-          width: 36px;
-          height: 36px;
-          min-width: 36px;
-          font-size: 1.3rem;
+          width: 32px;
+          height: 32px;
+          min-width: 32px;
+          border-radius: 9px;
+          font-size: 1.05rem;
+        }
+
+        .chore-icon-chip {
+          width: 32px;
+          height: 32px;
+          min-width: 32px;
+          border-radius: 10px;
+        }
+
+        .chore-icon-chip--emoji {
+          width: calc(32px * var(--chore-emoji-box-scale, 1));
+          height: calc(32px * var(--chore-emoji-box-scale, 1));
+          min-width: calc(32px * var(--chore-emoji-box-scale, 1));
+          border-radius: calc(10px * var(--chore-emoji-box-scale, 1));
+        }
+
+        .chore-icon-chip ha-icon {
+          --mdc-icon-size: 18px;
+        }
+
+        .chore-emoji {
+          font-size: calc(1.15rem * var(--chore-emoji-box-scale, 1));
         }
 
         .chore-checkbox {
-          width: calc(40px * var(--chore-checkbox-scale, 1));
-          height: calc(40px * var(--chore-checkbox-scale, 1));
-          min-width: calc(40px * var(--chore-checkbox-scale, 1));
+          width: calc(32px * var(--chore-checkbox-scale, 1));
+          height: calc(32px * var(--chore-checkbox-scale, 1));
+          min-width: calc(32px * var(--chore-checkbox-scale, 1));
+          border-width: 2px;
         }
 
         .chore-checkbox ha-icon {
-          --mdc-icon-size: calc(24px * var(--chore-checkbox-scale, 1));
+          --mdc-icon-size: calc(18px * var(--chore-checkbox-scale, 1));
         }
 
         .chore-name {
-          font-size: var(--chore-name-font-size, 1.3rem);
+          font-size: var(--chore-name-font-size, 1rem);
+          line-height: 1.2;
+        }
+
+        .chore-points {
+          gap: 6px;
+          font-size: var(--chore-points-font-size, 0.9rem);
+        }
+
+        .chore-points ha-icon {
+          --mdc-icon-size: 18px;
+        }
+
+        .chore-daily-limit {
+          font-size: var(--chore-points-font-size, 0.78rem);
         }
       }
 
