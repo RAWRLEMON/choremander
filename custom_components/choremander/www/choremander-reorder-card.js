@@ -56,6 +56,16 @@ class ChoremanderReorderCard extends LitElement {
       }
 
       ha-card {
+        overflow: hidden;
+        background: var(--ha-card-background, var(--card-background-color));
+        background-image: none;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+        padding: 0;
+      }
+
+      .card-content {
         padding: 16px;
       }
 
@@ -63,39 +73,61 @@ class ChoremanderReorderCard extends LitElement {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding-bottom: 16px;
-        border-bottom: 1px solid var(--divider-color);
+        gap: 12px;
+        padding: 16px 18px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
         margin-bottom: 16px;
       }
 
       .header-left {
         display: flex;
-        align-items: center;
-        gap: 12px;
+        flex-direction: column;
+        justify-content: center;
+        gap: 2px;
+        min-width: 0;
+      }
+
+      .card-subtitle {
+        font-size: 0.86em;
+        color: var(--secondary-text-color);
       }
 
       .card-title {
-        font-size: 1.3em;
-        font-weight: 500;
+        font-size: 1.12em;
+        font-weight: 650;
         color: var(--primary-text-color);
+        line-height: 1.2;
       }
 
-      .child-name {
-        font-size: 1em;
+      .header-controls {
+        display: flex;
+        align-items: flex-end;
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .child-select-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .child-select-label {
+        font-size: 0.78em;
         color: var(--secondary-text-color);
-        padding: 4px 12px;
-        background: var(--secondary-background-color);
-        border-radius: 16px;
+        font-weight: 500;
       }
 
       .child-select {
-        min-width: 140px;
+        min-width: 170px;
+        height: 40px;
         padding: 6px 12px;
-        font-size: 1em;
+        font-size: 0.95em;
         color: var(--primary-text-color);
-        background: var(--secondary-background-color);
+        background: var(--card-background-color);
         border: 1px solid var(--divider-color);
-        border-radius: 8px;
+        border-radius: 10px;
         cursor: pointer;
       }
 
@@ -108,8 +140,9 @@ class ChoremanderReorderCard extends LitElement {
         background: var(--primary-color);
         color: var(--text-primary-color);
         border: none;
-        border-radius: 8px;
-        padding: 8px 20px;
+        border-radius: 10px;
+        height: 40px;
+        padding: 0 18px;
         font-size: 0.95em;
         font-weight: 500;
         cursor: pointer;
@@ -379,10 +412,20 @@ class ChoremanderReorderCard extends LitElement {
           flex-direction: column;
           align-items: stretch;
           gap: 12px;
+          padding: 14px 12px;
         }
 
-        .header-left {
-          justify-content: space-between;
+        .header-controls {
+          align-items: stretch;
+          justify-content: stretch;
+        }
+
+        .child-select-group {
+          width: 100%;
+        }
+
+        .child-select {
+          width: 100%;
         }
 
         .save-button {
@@ -599,22 +642,12 @@ class ChoremanderReorderCard extends LitElement {
     if (!child) {
       return html`
         <ha-card>
-          <div class="card-header">
-            <div class="header-left">
-              <span class="card-title">${this.config.title}</span>
-              <select class="child-select" .value="${this._selectedChildId || ''}" @change="${this._onChildSelectChange}">
-                <option value="">Select a child...</option>
-                ${children.map(
-                  (c) => html`
-                    <option value="${c.id}" ?selected="${this._selectedChildId === c.id}">${c.name}</option>
-                  `
-                )}
-              </select>
+          ${this._renderHeader(children, this._selectedChildId || "", false)}
+          <div class="card-content">
+            <div class="empty-state">
+              <ha-icon icon="mdi:account-search"></ha-icon>
+              <div class="message">Select a child to reorder their chores</div>
             </div>
-          </div>
-          <div class="empty-state">
-            <ha-icon icon="mdi:account-search"></ha-icon>
-            <div class="message">Select a child to reorder their chores</div>
           </div>
         </ha-card>
       `;
@@ -626,23 +659,13 @@ class ChoremanderReorderCard extends LitElement {
     if (childChores.length === 0) {
       return html`
         <ha-card>
-          <div class="card-header">
-            <div class="header-left">
-              <span class="card-title">${this.config.title}</span>
-              <select class="child-select" .value="${effectiveChildId}" @change="${this._onChildSelectChange}">
-                <option value="">Select a child...</option>
-                ${children.map(
-                  (c) => html`
-                    <option value="${c.id}">${c.name}</option>
-                  `
-                )}
-              </select>
+          ${this._renderHeader(children, effectiveChildId, false)}
+          <div class="card-content">
+            <div class="empty-state">
+              <ha-icon icon="mdi:clipboard-text-off"></ha-icon>
+              <div class="message">No chores assigned</div>
+              <div class="submessage">Add chores to this child first</div>
             </div>
-          </div>
-          <div class="empty-state">
-            <ha-icon icon="mdi:clipboard-text-off"></ha-icon>
-            <div class="message">No chores assigned</div>
-            <div class="submessage">Add chores to this child first</div>
           </div>
         </ha-card>
       `;
@@ -653,69 +676,86 @@ class ChoremanderReorderCard extends LitElement {
 
     return html`
       <ha-card>
-        <div class="card-header">
-          <div class="header-left">
-            <span class="card-title">${this.config.title}</span>
-            <select class="child-select" .value="${effectiveChildId}" @change="${this._onChildSelectChange}">
+        ${this._renderHeader(children, effectiveChildId, true)}
+        <div class="card-content">
+          ${this._hasChanges
+            ? html`
+                <div class="status-bar">
+                  <span class="status-text unsaved">You have unsaved changes</span>
+                </div>
+              `
+            : ""}
+
+          ${timeCategories.map((category) => {
+            const categoryChoreIds = this._localChoreOrder[category] || [];
+            const categoryChores = categoryChoreIds
+              .map((id) => chores.find((c) => c.id === id))
+              .filter((c) => c);
+
+            // Also include any chores in this category that aren't in the order yet
+            const orderedIds = new Set(categoryChoreIds);
+            const missingChores = childChores.filter(
+              (c) => c.time_category === category && !orderedIds.has(c.id)
+            );
+            const allCategoryChores = [...categoryChores, ...missingChores];
+
+            if (allCategoryChores.length === 0) {
+              return "";
+            }
+
+            return html`
+              <div class="time-category-section">
+                <div class="time-category-header">
+                  <ha-icon icon="${this._getTimeCategoryIcon(category)}"></ha-icon>
+                  ${this._getTimeCategoryLabel(category)}
+                  <span class="count">${allCategoryChores.length} chore${allCategoryChores.length !== 1 ? "s" : ""}</span>
+                </div>
+                <div class="chores-list">
+                  ${allCategoryChores.map((chore, index) =>
+                    this._renderChoreItem(chore, index, allCategoryChores.length, category, pointsIcon)
+                  )}
+                </div>
+              </div>
+            `;
+          })}
+        </div>
+      </ha-card>
+    `;
+  }
+
+  _renderHeader(children, selectedChildId, includeSaveButton) {
+    return html`
+      <div class="card-header">
+        <div class="header-left">
+          <span class="card-title">${this.config.title}</span>
+          <span class="card-subtitle">Choose child and reorder chores by time</span>
+        </div>
+        <div class="header-controls">
+          <div class="child-select-group">
+            <label class="child-select-label">Select a child</label>
+            <select class="child-select" .value="${selectedChildId || ""}" @change="${this._onChildSelectChange}">
               <option value="">Select a child...</option>
               ${children.map(
                 (c) => html`
-                  <option value="${c.id}">${c.name}</option>
+                  <option value="${c.id}" ?selected="${selectedChildId === c.id}">${c.name}</option>
                 `
               )}
             </select>
           </div>
-          <button
-            class="save-button ${this._saving ? "saving" : ""} ${this._hasChanges ? "has-changes" : ""}"
-            @click="${this._handleSave}"
-            ?disabled="${this._saving || !this._hasChanges}"
-          >
-            <ha-icon icon="${this._saving ? "mdi:loading" : "mdi:content-save"}"></ha-icon>
-            ${this._saving ? "Saving..." : "Save Order"}
-          </button>
+          ${includeSaveButton
+            ? html`
+                <button
+                  class="save-button ${this._saving ? "saving" : ""} ${this._hasChanges ? "has-changes" : ""}"
+                  @click="${this._handleSave}"
+                  ?disabled="${this._saving || !this._hasChanges}"
+                >
+                  <ha-icon icon="${this._saving ? "mdi:loading" : "mdi:content-save"}"></ha-icon>
+                  ${this._saving ? "Saving..." : "Save Order"}
+                </button>
+              `
+            : ""}
         </div>
-
-        ${this._hasChanges
-          ? html`
-              <div class="status-bar">
-                <span class="status-text unsaved">You have unsaved changes</span>
-              </div>
-            `
-          : ""}
-
-        ${timeCategories.map((category) => {
-          const categoryChoreIds = this._localChoreOrder[category] || [];
-          const categoryChores = categoryChoreIds
-            .map((id) => chores.find((c) => c.id === id))
-            .filter((c) => c);
-
-          // Also include any chores in this category that aren't in the order yet
-          const orderedIds = new Set(categoryChoreIds);
-          const missingChores = childChores.filter(
-            (c) => c.time_category === category && !orderedIds.has(c.id)
-          );
-          const allCategoryChores = [...categoryChores, ...missingChores];
-
-          if (allCategoryChores.length === 0) {
-            return "";
-          }
-
-          return html`
-            <div class="time-category-section">
-              <div class="time-category-header">
-                <ha-icon icon="${this._getTimeCategoryIcon(category)}"></ha-icon>
-                ${this._getTimeCategoryLabel(category)}
-                <span class="count">${allCategoryChores.length} chore${allCategoryChores.length !== 1 ? "s" : ""}</span>
-              </div>
-              <div class="chores-list">
-                ${allCategoryChores.map((chore, index) =>
-                  this._renderChoreItem(chore, index, allCategoryChores.length, category, pointsIcon)
-                )}
-              </div>
-            </div>
-          `;
-        })}
-      </ha-card>
+      </div>
     `;
   }
 
