@@ -52,19 +52,29 @@ class ChoremanderRewardsCard extends LitElement {
         --text-secondary: var(--secondary-text-color, #757575);
         --card-bg: var(--card-background-color, #fff);
         --divider: var(--divider-color, #e0e0e0);
+        --cm-surface-border: 1px solid rgba(255, 255, 255, 0.1);
+        --cm-surface-radius: 24px;
+        --cm-surface-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+        --cm-success-color: var(--success-color, #4caf50);
+        --cm-danger-color: var(--error-color, #f44336);
       }
 
       ha-card {
         overflow: hidden;
+        background: var(--ha-card-background, var(--card-background-color));
+        background-image: none;
+        border: var(--cm-surface-border);
+        border-radius: var(--cm-surface-radius);
+        box-shadow: var(--cm-surface-shadow);
       }
 
       .card-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 16px 20px;
-        background: linear-gradient(135deg, var(--reward-purple) 0%, var(--reward-purple-light) 100%);
-        color: white;
+        padding: 16px 18px;
+        gap: 12px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
       }
 
       .header-content {
@@ -76,23 +86,27 @@ class ChoremanderRewardsCard extends LitElement {
       .header-icon {
         --mdc-icon-size: 32px;
         opacity: 0.95;
+        color: var(--primary-color);
       }
 
       .header-title {
-        font-size: 1.3rem;
-        font-weight: 600;
+        font-size: 1.12em;
+        font-weight: 650;
+        color: var(--primary-text-color);
       }
 
       .reward-count {
-        background: rgba(255, 255, 255, 0.2);
+        background: color-mix(in srgb, var(--primary-color) 16%, transparent);
+        border: 1px solid color-mix(in srgb, var(--primary-color) 30%, transparent);
+        color: var(--primary-text-color);
         padding: 4px 12px;
-        border-radius: 16px;
-        font-size: 0.9rem;
-        font-weight: 500;
+        border-radius: 999px;
+        font-size: 0.88rem;
+        font-weight: 650;
       }
 
       .card-content {
-        padding: 16px;
+        padding: 16px 18px 18px;
         display: flex;
         flex-direction: column;
         gap: 12px;
@@ -106,12 +120,12 @@ class ChoremanderRewardsCard extends LitElement {
         padding: 16px;
         background: var(--card-bg);
         border: 1px solid var(--divider);
-        border-radius: 12px;
+        border-radius: 14px;
         transition: box-shadow 0.2s ease, transform 0.15s ease;
       }
 
       .reward-row:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.14);
         transform: translateY(-1px);
       }
 
@@ -473,7 +487,13 @@ class ChoremanderRewardsCard extends LitElement {
       /* Fun kid-friendly colors for segments */
       .jackpot-segment.color-0 { background: linear-gradient(180deg, #ff6b9d 0%, #e91e63 100%); }
       .jackpot-segment.color-1 { background: linear-gradient(180deg, #64b5f6 0%, #2196f3 100%); }
-      .jackpot-segment.color-2 { background: linear-gradient(180deg, #81c784 0%, #4caf50 100%); }
+      .jackpot-segment.color-2 {
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--cm-success-color) 65%, white) 0%,
+          var(--cm-success-color) 100%
+        );
+      }
       .jackpot-segment.color-3 { background: linear-gradient(180deg, #ffb74d 0%, #ff9800 100%); }
       .jackpot-segment.color-4 { background: linear-gradient(180deg, #ba68c8 0%, #9c27b0 100%); }
       .jackpot-segment.color-5 { background: linear-gradient(180deg, #4dd0e1 0%, #00bcd4 100%); }
@@ -506,7 +526,7 @@ class ChoremanderRewardsCard extends LitElement {
 
       .jackpot-child-contribution .color-dot.color-0 { background: #e91e63; }
       .jackpot-child-contribution .color-dot.color-1 { background: #2196f3; }
-      .jackpot-child-contribution .color-dot.color-2 { background: #4caf50; }
+      .jackpot-child-contribution .color-dot.color-2 { background: var(--cm-success-color); }
       .jackpot-child-contribution .color-dot.color-3 { background: #ff9800; }
       .jackpot-child-contribution .color-dot.color-4 { background: #9c27b0; }
       .jackpot-child-contribution .color-dot.color-5 { background: #00bcd4; }
@@ -596,7 +616,7 @@ class ChoremanderRewardsCard extends LitElement {
         align-items: center;
         justify-content: center;
         padding: 40px 20px;
-        color: var(--error-color, #f44336);
+        color: var(--cm-danger-color);
         text-align: center;
       }
 

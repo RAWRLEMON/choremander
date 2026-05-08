@@ -50,19 +50,36 @@ class ChoremanderPointsCard extends LitElement {
         --card-warning-color: var(--warning-color, #ff9800);
         --text-primary: var(--primary-text-color, #212121);
         --text-secondary: var(--secondary-text-color, #757575);
+        --cm-surface-border: 1px solid rgba(255, 255, 255, 0.1);
+        --cm-surface-radius: 24px;
+        --cm-surface-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+        --cm-success-gradient: linear-gradient(
+          135deg,
+          var(--card-success-color) 0%,
+          color-mix(in srgb, var(--card-success-color) 80%, black) 100%
+        );
+        --cm-danger-gradient: linear-gradient(
+          135deg,
+          var(--card-error-color) 0%,
+          color-mix(in srgb, var(--card-error-color) 80%, black) 100%
+        );
       }
 
       ha-card {
         overflow: hidden;
+        background: var(--ha-card-background, var(--card-background-color));
+        background-image: none;
+        border: var(--cm-surface-border);
+        border-radius: var(--cm-surface-radius);
+        box-shadow: var(--cm-surface-shadow);
       }
 
       .card-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 16px;
-        background: linear-gradient(135deg, var(--card-primary-color) 0%, #7986cb 100%);
-        color: white;
+        padding: 16px 18px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
       }
 
       .header-content {
@@ -74,15 +91,17 @@ class ChoremanderPointsCard extends LitElement {
       .header-icon {
         --mdc-icon-size: 32px;
         opacity: 0.9;
+        color: var(--primary-color);
       }
 
       .header-title {
-        font-size: 1.3rem;
-        font-weight: 500;
+        font-size: 1.12em;
+        font-weight: 650;
+        color: var(--primary-text-color);
       }
 
       .card-content {
-        padding: 16px;
+        padding: 16px 18px 18px;
         display: flex;
         flex-direction: column;
         gap: 12px;
@@ -96,12 +115,13 @@ class ChoremanderPointsCard extends LitElement {
         padding: 12px 16px;
         background: var(--card-background-color, #fff);
         border: 1px solid var(--divider-color, #e0e0e0);
-        border-radius: 12px;
-        transition: box-shadow 0.2s ease;
+        border-radius: 14px;
+        transition: box-shadow 0.2s ease, transform 0.15s ease;
       }
 
       .child-row:hover {
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.14);
+        transform: translateY(-1px);
       }
 
       .child-row.loading {
@@ -120,8 +140,9 @@ class ChoremanderPointsCard extends LitElement {
       .child-avatar {
         width: 48px;
         height: 48px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, var(--card-primary-color) 0%, #7986cb 100%);
+        border-radius: 14px;
+        background: color-mix(in srgb, var(--primary-color) 16%, transparent);
+        border: 1px solid color-mix(in srgb, var(--primary-color) 28%, transparent);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -130,7 +151,7 @@ class ChoremanderPointsCard extends LitElement {
 
       .child-avatar ha-icon {
         --mdc-icon-size: 28px;
-        color: white;
+        color: var(--primary-color);
       }
 
       .child-details {
@@ -174,7 +195,7 @@ class ChoremanderPointsCard extends LitElement {
         width: 44px;
         height: 44px;
         border: none;
-        border-radius: 50%;
+        border-radius: 12px;
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -194,12 +215,12 @@ class ChoremanderPointsCard extends LitElement {
       }
 
       .action-button.remove {
-        background: linear-gradient(135deg, #ef5350 0%, #e53935 100%);
+        background: var(--cm-danger-gradient);
         color: white;
       }
 
       .action-button.add {
-        background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+        background: var(--cm-success-gradient);
         color: white;
       }
 
@@ -270,11 +291,11 @@ class ChoremanderPointsCard extends LitElement {
       }
 
       .dialog-header .icon-container.add {
-        background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+        background: var(--cm-success-gradient);
       }
 
       .dialog-header .icon-container.remove {
-        background: linear-gradient(135deg, #ef5350 0%, #e53935 100%);
+        background: var(--cm-danger-gradient);
       }
 
       .dialog-header .icon-container ha-icon {
@@ -387,11 +408,11 @@ class ChoremanderPointsCard extends LitElement {
       }
 
       .dialog-button.confirm.add {
-        background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+        background: var(--cm-success-gradient);
       }
 
       .dialog-button.confirm.remove {
-        background: linear-gradient(135deg, #ef5350 0%, #e53935 100%);
+        background: var(--cm-danger-gradient);
       }
 
       .dialog-button.loading {
@@ -429,11 +450,11 @@ class ChoremanderPointsCard extends LitElement {
       }
 
       .notification.success {
-        background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+        background: var(--cm-success-gradient);
       }
 
       .notification.error {
-        background: linear-gradient(135deg, #ef5350 0%, #e53935 100%);
+        background: var(--cm-danger-gradient);
       }
 
       .notification ha-icon {

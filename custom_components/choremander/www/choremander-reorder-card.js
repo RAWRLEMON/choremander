@@ -53,15 +53,20 @@ class ChoremanderReorderCard extends LitElement {
     return css`
       :host {
         display: block;
+        --cm-surface-border: 1px solid rgba(255, 255, 255, 0.1);
+        --cm-surface-radius: 24px;
+        --cm-surface-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+        --cm-warning-color: var(--warning-color, #ff9800);
+        --cm-success-color: var(--success-color, #4caf50);
       }
 
       ha-card {
         overflow: hidden;
         background: var(--ha-card-background, var(--card-background-color));
         background-image: none;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 24px;
-        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+        border: var(--cm-surface-border);
+        border-radius: var(--cm-surface-radius);
+        box-shadow: var(--cm-surface-shadow);
         padding: 0;
       }
 
@@ -203,10 +208,11 @@ class ChoremanderReorderCard extends LitElement {
         gap: 10px;
         padding: 10px 14px;
         background: var(--secondary-background-color);
-        border-radius: 10px;
+        border-radius: 14px;
         margin-bottom: 12px;
-        font-weight: 500;
+        font-weight: 650;
         color: var(--primary-text-color);
+        border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.08));
       }
 
       .time-category-header ha-icon {
@@ -218,9 +224,10 @@ class ChoremanderReorderCard extends LitElement {
         margin-left: auto;
         font-size: 0.85em;
         color: var(--secondary-text-color);
-        background: var(--card-background-color);
-        padding: 2px 10px;
-        border-radius: 12px;
+        background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+        padding: 3px 10px;
+        border-radius: 999px;
+        border: 1px solid color-mix(in srgb, var(--primary-color) 22%, transparent);
       }
 
       .chores-list {
@@ -237,13 +244,14 @@ class ChoremanderReorderCard extends LitElement {
         padding: 12px 16px;
         background: var(--card-background-color);
         border: 1px solid var(--divider-color);
-        border-radius: 10px;
+        border-radius: 12px;
         transition: box-shadow 0.2s ease, border-color 0.2s ease;
       }
 
       .chore-item:hover {
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.14);
         border-color: var(--primary-color);
+        transform: translateY(-1px);
       }
 
       .order-number {
@@ -299,7 +307,7 @@ class ChoremanderReorderCard extends LitElement {
 
       .chore-points ha-icon {
         --mdc-icon-size: 14px;
-        color: #ffc107;
+        color: var(--cm-warning-color);
       }
 
       .reorder-buttons {
@@ -311,7 +319,7 @@ class ChoremanderReorderCard extends LitElement {
         width: 36px;
         height: 36px;
         border: 1px solid var(--divider-color);
-        border-radius: 8px;
+        border-radius: 10px;
         background: var(--card-background-color);
         color: var(--primary-text-color);
         cursor: pointer;
@@ -398,12 +406,12 @@ class ChoremanderReorderCard extends LitElement {
       }
 
       .status-text.unsaved {
-        color: var(--warning-color, #ff9800);
+        color: var(--cm-warning-color);
         font-weight: 500;
       }
 
       .status-text.saved {
-        color: var(--success-color, #4caf50);
+        color: var(--cm-success-color);
       }
 
       /* Responsive adjustments */

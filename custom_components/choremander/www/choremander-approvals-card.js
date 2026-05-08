@@ -39,19 +39,38 @@ class ChoremanderApprovalsCard extends LitElement {
     return css`
       :host {
         display: block;
+        --cm-surface-border: 1px solid rgba(255, 255, 255, 0.1);
+        --cm-surface-radius: 24px;
+        --cm-surface-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+        --cm-success-gradient: linear-gradient(
+          135deg,
+          var(--success-color, #4caf50) 0%,
+          color-mix(in srgb, var(--success-color, #4caf50) 80%, black) 100%
+        );
+        --cm-danger-gradient: linear-gradient(
+          135deg,
+          var(--error-color, #f44336) 0%,
+          color-mix(in srgb, var(--error-color, #f44336) 80%, black) 100%
+        );
       }
 
       ha-card {
-        padding: 16px;
+        overflow: hidden;
+        background: var(--ha-card-background, var(--card-background-color));
+        background-image: none;
+        border: var(--cm-surface-border);
+        border-radius: var(--cm-surface-radius);
+        box-shadow: var(--cm-surface-shadow);
+        padding: 0;
       }
 
       .card-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding-bottom: 12px;
-        border-bottom: 1px solid var(--divider-color);
-        margin-bottom: 16px;
+        padding: 16px 18px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        gap: 10px;
       }
 
       .card-title {
@@ -61,12 +80,17 @@ class ChoremanderApprovalsCard extends LitElement {
       }
 
       .pending-count {
-        background: var(--primary-color);
-        color: var(--text-primary-color);
-        border-radius: 12px;
-        padding: 2px 10px;
+        background: color-mix(in srgb, var(--primary-color) 16%, transparent);
+        border: 1px solid color-mix(in srgb, var(--primary-color) 30%, transparent);
+        color: var(--primary-text-color);
+        border-radius: 999px;
+        padding: 4px 10px;
         font-size: 0.9em;
-        font-weight: 500;
+        font-weight: 650;
+      }
+
+      .card-content {
+        padding: 16px 18px 18px;
       }
 
       .day-group {
@@ -75,12 +99,13 @@ class ChoremanderApprovalsCard extends LitElement {
 
       .day-header {
         font-size: 0.95em;
-        font-weight: 600;
+        font-weight: 650;
         color: var(--primary-text-color);
         margin-bottom: 12px;
-        padding: 8px 12px;
-        background: var(--secondary-background-color);
-        border-radius: 8px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.08));
       }
 
       .time-group {
@@ -110,12 +135,14 @@ class ChoremanderApprovalsCard extends LitElement {
         margin-bottom: 8px;
         background: var(--card-background-color);
         border: 1px solid var(--divider-color);
-        border-radius: 8px;
-        transition: box-shadow 0.2s ease;
+        border-radius: 12px;
+        transition: box-shadow 0.2s ease, transform 0.15s ease, border-color 0.2s ease;
       }
 
       .approval-item:hover {
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transform: translateY(-1px);
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.14);
+        border-color: color-mix(in srgb, var(--primary-color) 35%, var(--divider-color));
       }
 
       .approval-item.loading {
@@ -157,10 +184,11 @@ class ChoremanderApprovalsCard extends LitElement {
         display: flex;
         align-items: center;
         gap: 4px;
-        background: var(--accent-color, #ffc107);
-        color: var(--text-primary-color, #000);
-        padding: 2px 8px;
-        border-radius: 12px;
+        background: color-mix(in srgb, var(--primary-color) 18%, transparent);
+        color: var(--primary-text-color);
+        padding: 2px 10px;
+        border-radius: 999px;
+        border: 1px solid color-mix(in srgb, var(--primary-color) 30%, transparent);
         font-weight: 500;
       }
 
@@ -183,9 +211,9 @@ class ChoremanderApprovalsCard extends LitElement {
 
       .action-button {
         border: none;
-        border-radius: 50%;
-        width: 36px;
-        height: 36px;
+        border-radius: 12px;
+        width: 38px;
+        height: 38px;
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -203,12 +231,12 @@ class ChoremanderApprovalsCard extends LitElement {
       }
 
       .action-button.approve {
-        background: #4caf50;
+        background: var(--cm-success-gradient);
         color: white;
       }
 
       .action-button.reject {
-        background: #f44336;
+        background: var(--cm-danger-gradient);
         color: white;
       }
 
@@ -226,7 +254,7 @@ class ChoremanderApprovalsCard extends LitElement {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 40px 20px;
+        padding: 48px 24px;
         color: var(--secondary-text-color);
         text-align: center;
       }
@@ -252,7 +280,7 @@ class ChoremanderApprovalsCard extends LitElement {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 40px 20px;
+        padding: 48px 24px;
         color: var(--error-color);
         text-align: center;
       }
@@ -341,10 +369,11 @@ class ChoremanderApprovalsCard extends LitElement {
             ? html`<span class="pending-count">${totalPending}</span>`
             : ""}
         </div>
-
-        ${totalPending === 0
-          ? this._renderEmptyState()
-          : this._renderApprovals(groupedByDay)}
+        <div class="card-content">
+          ${totalPending === 0
+            ? this._renderEmptyState()
+            : this._renderApprovals(groupedByDay)}
+        </div>
       </ha-card>
     `;
   }
