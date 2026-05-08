@@ -44,10 +44,6 @@ class ChoremanderRewardsCard extends LitElement {
     return css`
       :host {
         display: block;
-        --reward-purple: #9b59b6;
-        --reward-purple-light: #a569bd;
-        --reward-gold: #f1c40f;
-        --reward-gold-dark: #d4a80a;
         --text-primary: var(--primary-text-color, #212121);
         --text-secondary: var(--secondary-text-color, #757575);
         --card-bg: var(--card-background-color, #fff);
@@ -55,8 +51,20 @@ class ChoremanderRewardsCard extends LitElement {
         --cm-surface-border: 1px solid rgba(255, 255, 255, 0.1);
         --cm-surface-radius: 24px;
         --cm-surface-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+        --cm-primary-color: var(--primary-color, #5c6bc0);
+        --cm-warning-color: var(--warning-color, #ff9800);
         --cm-success-color: var(--success-color, #4caf50);
         --cm-danger-color: var(--error-color, #f44336);
+        --cm-primary-gradient: linear-gradient(
+          135deg,
+          var(--cm-primary-color) 0%,
+          color-mix(in srgb, var(--cm-primary-color) 78%, black) 100%
+        );
+        --cm-warning-gradient: linear-gradient(
+          135deg,
+          var(--cm-warning-color) 0%,
+          color-mix(in srgb, var(--cm-warning-color) 78%, black) 100%
+        );
       }
 
       ha-card {
@@ -137,9 +145,9 @@ class ChoremanderRewardsCard extends LitElement {
         justify-content: center;
         min-width: 70px;
         padding: 12px 8px;
-        background: linear-gradient(135deg, var(--reward-gold) 0%, var(--reward-gold-dark) 100%);
+        background: var(--cm-primary-gradient);
         border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(241, 196, 15, 0.3);
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--cm-primary-color) 40%, transparent);
         flex-shrink: 0;
       }
 
@@ -198,7 +206,7 @@ class ChoremanderRewardsCard extends LitElement {
       }
 
       .claim-button {
-        background: linear-gradient(135deg, var(--reward-purple) 0%, var(--reward-purple-light) 50%, var(--reward-gold) 100%);
+        background: var(--cm-primary-gradient);
         color: #fff;
         border: none;
         border-radius: 999px;
@@ -211,7 +219,7 @@ class ChoremanderRewardsCard extends LitElement {
         align-items: center;
         gap: 6px;
         cursor: pointer;
-        box-shadow: 0 3px 8px rgba(155, 89, 182, 0.4);
+        box-shadow: 0 3px 8px color-mix(in srgb, var(--cm-primary-color) 45%, transparent);
         transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
       }
 
@@ -223,12 +231,12 @@ class ChoremanderRewardsCard extends LitElement {
 
       .claim-button:not([disabled]):hover {
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(155, 89, 182, 0.6);
+        box-shadow: 0 4px 12px color-mix(in srgb, var(--cm-primary-color) 60%, transparent);
       }
 
       .claim-button:not([disabled]):active {
         transform: translateY(0);
-        box-shadow: 0 2px 6px rgba(155, 89, 182, 0.5);
+        box-shadow: 0 2px 6px color-mix(in srgb, var(--cm-primary-color) 50%, transparent);
       }
 
       /* Redeem celebration animation */
@@ -291,16 +299,18 @@ class ChoremanderRewardsCard extends LitElement {
         display: inline-flex;
         align-items: center;
         padding: 2px 8px;
-        background: rgba(155, 89, 182, 0.15);
+        background: color-mix(in srgb, var(--cm-primary-color) 16%, transparent);
         border-radius: 12px;
         font-size: 0.75rem;
-        color: var(--reward-purple);
+        color: var(--primary-text-color);
+        border: 1px solid color-mix(in srgb, var(--cm-primary-color) 28%, transparent);
         font-weight: 500;
       }
 
       .child-badge.all-children {
-        background: rgba(46, 204, 113, 0.15);
-        color: #27ae60;
+        background: color-mix(in srgb, var(--cm-success-color) 16%, transparent);
+        color: var(--primary-text-color);
+        border: 1px solid color-mix(in srgb, var(--cm-success-color) 28%, transparent);
       }
 
       /* Progress bar styles */
@@ -326,14 +336,18 @@ class ChoremanderRewardsCard extends LitElement {
         border-radius: 7px;
         overflow: hidden;
         position: relative;
-        border: 2px solid rgba(52, 152, 219, 0.4);
+        border: 2px solid color-mix(in srgb, var(--cm-primary-color) 40%, transparent);
         box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
       }
 
       .progress-fill {
         height: 100%;
         border-radius: 7px;
-        background: linear-gradient(90deg, #3498db 0%, #2ecc71 100%);
+        background: linear-gradient(
+          90deg,
+          var(--cm-primary-color) 0%,
+          color-mix(in srgb, var(--cm-primary-color) 55%, var(--cm-success-color)) 100%
+        );
         transition: width 0.4s ease;
         position: relative;
         overflow: hidden;
@@ -371,8 +385,12 @@ class ChoremanderRewardsCard extends LitElement {
 
       /* Jackpot reward styles */
       .reward-row.jackpot {
-        border: 2px solid var(--reward-gold);
-        background: linear-gradient(135deg, rgba(241, 196, 15, 0.08) 0%, rgba(255, 255, 255, 0) 100%);
+        border: 2px solid color-mix(in srgb, var(--cm-warning-color) 70%, transparent);
+        background: linear-gradient(
+          135deg,
+          color-mix(in srgb, var(--cm-warning-color) 10%, transparent) 0%,
+          rgba(255, 255, 255, 0) 100%
+        );
         position: relative;
         overflow: hidden;
       }
@@ -387,7 +405,7 @@ class ChoremanderRewardsCard extends LitElement {
         background: linear-gradient(
           45deg,
           transparent 40%,
-          rgba(241, 196, 15, 0.1) 50%,
+          color-mix(in srgb, var(--cm-warning-color) 16%, transparent) 50%,
           transparent 60%
         );
         animation: jackpot-shine 40s ease-in-out infinite;
@@ -410,7 +428,7 @@ class ChoremanderRewardsCard extends LitElement {
         align-items: center;
         gap: 4px;
         padding: 3px 10px;
-        background: linear-gradient(135deg, var(--reward-gold) 0%, #e67e22 100%);
+        background: var(--cm-warning-gradient);
         border-radius: 12px;
         font-size: 0.7rem;
         font-weight: 700;
@@ -418,7 +436,7 @@ class ChoremanderRewardsCard extends LitElement {
         text-transform: uppercase;
         letter-spacing: 0.5px;
         margin-bottom: 4px;
-        box-shadow: 0 2px 6px rgba(241, 196, 15, 0.4);
+        box-shadow: 0 2px 6px color-mix(in srgb, var(--cm-warning-color) 45%, transparent);
       }
 
       .jackpot-label span {
@@ -434,7 +452,7 @@ class ChoremanderRewardsCard extends LitElement {
         overflow: hidden;
         position: relative;
         display: flex;
-        border: 2px solid rgba(241, 196, 15, 0.5);
+        border: 2px solid color-mix(in srgb, var(--cm-warning-color) 48%, transparent);
         box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
       }
 
@@ -533,26 +551,27 @@ class ChoremanderRewardsCard extends LitElement {
 
       .jackpot-total {
         font-weight: 700;
-        color: var(--reward-gold-dark);
+        color: var(--primary-text-color);
         padding: 2px 8px;
-        background: rgba(241, 196, 15, 0.15);
+        background: color-mix(in srgb, var(--cm-warning-color) 18%, transparent);
+        border: 1px solid color-mix(in srgb, var(--cm-warning-color) 30%, transparent);
         border-radius: 10px;
       }
 
       /* Cost badge for jackpot - special styling */
       .reward-row.jackpot .cost-badge {
-        background: linear-gradient(135deg, var(--reward-gold) 0%, #e67e22 100%);
-        box-shadow: 0 3px 10px rgba(241, 196, 15, 0.4);
+        background: var(--cm-warning-gradient);
+        box-shadow: 0 3px 10px color-mix(in srgb, var(--cm-warning-color) 45%, transparent);
       }
 
       /* Dynamic reward styles */
       .reward-row.dynamic {
-        border: 1px dashed rgba(52, 152, 219, 0.5);
+        border: 1px dashed color-mix(in srgb, var(--cm-primary-color) 48%, transparent);
       }
 
       .cost-badge.dynamic-cost {
-        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-        box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+        background: var(--cm-primary-gradient);
+        box-shadow: 0 2px 8px color-mix(in srgb, var(--cm-primary-color) 40%, transparent);
         position: relative;
       }
 
@@ -566,8 +585,9 @@ class ChoremanderRewardsCard extends LitElement {
       .reward-icon-container {
         width: 44px;
         height: 44px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, var(--reward-purple) 0%, var(--reward-purple-light) 100%);
+        border-radius: 12px;
+        background: color-mix(in srgb, var(--cm-primary-color) 16%, transparent);
+        border: 1px solid color-mix(in srgb, var(--cm-primary-color) 28%, transparent);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -576,7 +596,7 @@ class ChoremanderRewardsCard extends LitElement {
 
       .reward-icon-container ha-icon {
         --mdc-icon-size: 24px;
-        color: white;
+        color: var(--cm-primary-color);
       }
 
       /* Empty state */
@@ -594,7 +614,7 @@ class ChoremanderRewardsCard extends LitElement {
         --mdc-icon-size: 56px;
         margin-bottom: 16px;
         opacity: 0.5;
-        color: var(--reward-purple);
+        color: var(--cm-primary-color);
       }
 
       .empty-state .message {
