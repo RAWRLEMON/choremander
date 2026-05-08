@@ -116,3 +116,203 @@ remove_points:
       required: false
       selector:
         text:
+
+set_chore_order:
+  name: Set Chore Order
+  description: Save chore display order for a child
+  fields:
+    child_id:
+      name: Child ID
+      description: Child to update
+      required: true
+      selector:
+        text:
+    chore_order:
+      name: Chore Order
+      description: Ordered list of chore IDs
+      required: true
+      selector:
+        object:
+
+add_child:
+  name: Add Child
+  description: Add a child profile
+  fields:
+    name:
+      name: Name
+      required: true
+      selector:
+        text:
+    avatar:
+      name: Avatar
+      required: false
+      selector:
+        icon:
+
+update_child:
+  name: Update Child
+  description: Update child profile fields
+  fields:
+    child_id:
+      name: Child ID
+      required: true
+      selector:
+        text:
+    name:
+      name: Name
+      required: false
+      selector:
+        text:
+    avatar:
+      name: Avatar
+      required: false
+      selector:
+        icon:
+
+remove_child:
+  name: Remove Child
+  description: Remove a child profile
+  fields:
+    child_id:
+      name: Child ID
+      required: true
+      selector:
+        text:
+
+add_chore:
+  name: Add Chore
+  description: Add a chore
+  fields:
+    name:
+      name: Name
+      required: true
+      selector:
+        text:
+    points:
+      name: Points
+      required: false
+      selector:
+        number:
+          min: 1
+          mode: box
+    description:
+      name: Description
+      required: false
+      selector:
+        text:
+    assigned_to:
+      name: Assigned To
+      required: false
+      selector:
+        object:
+
+update_chore:
+  name: Update Chore
+  description: Update chore fields
+  fields:
+    chore_id:
+      name: Chore ID
+      required: true
+      selector:
+        text:
+    name:
+      name: Name
+      required: false
+      selector:
+        text:
+    points:
+      name: Points
+      required: false
+      selector:
+        number:
+          min: 1
+          mode: box
+    description:
+      name: Description
+      required: false
+      selector:
+        text:
+    assigned_to:
+      name: Assigned To
+      required: false
+      selector:
+        object:
+
+remove_chore:
+  name: Remove Chore
+  description: Remove a chore
+  fields:
+    chore_id:
+      name: Chore ID
+      required: true
+      selector:
+        text:
+
+add_reward:
+  name: Add Reward
+  description: Add a reward
+  fields:
+    name:
+      name: Name
+      required: true
+      selector:
+        text:
+    cost:
+      name: Cost
+      required: false
+      selector:
+        number:
+          min: 1
+          mode: box
+    description:
+      name: Description
+      required: false
+      selector:
+        text:
+    assigned_to:
+      name: Assigned To
+      required: false
+      selector:
+        object:
+
+update_reward:
+  name: Update Reward
+  description: Update reward fields
+  fields:
+    reward_id:
+      name: Reward ID
+      required: true
+      selector:
+        text:
+    name:
+      name: Name
+      required: false
+      selector:
+        text:
+    cost:
+      name: Cost
+      required: false
+      selector:
+        number:
+          min: 1
+          mode: box
+    description:
+      name: Description
+      required: false
+      selector:
+        text:
+    assigned_to:
+      name: Assigned To
+      required: false
+      selector:
+        object:
+
+remove_reward:
+  name: Remove Reward
+  description: Remove a reward
+  fields:
+    reward_id:
+      name: Reward ID
+      required: true
+      selector:
+        text:
