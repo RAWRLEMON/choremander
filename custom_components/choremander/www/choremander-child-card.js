@@ -59,6 +59,126 @@ class ChoremanderChildCard extends LitElement {
     // Active time category for in-card filtering (defaults to config)
     this._activeTimeCategory = null;
     this._configTimeCategory = null;
+    this._themeContextKey = null;
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    this._themeContextKey = this._getThemeContextKey(this.hass);
+    this._syncThemeVariables();
+  }
+
+  updated(changedProperties) {
+    if (!this.hass) {
+      return;
+    }
+
+    const oldHass = changedProperties.get("hass");
+    const themeContextChanged =
+      !oldHass || this._hasThemeContextChanged(oldHass, this.hass);
+
+    if (!themeContextChanged) {
+      return;
+    }
+
+    const key = this._getThemeContextKey(this.hass);
+    if (key === this._themeContextKey) {
+      return;
+    }
+
+    this._themeContextKey = key;
+    this._syncThemeVariables();
+  }
+
+  _getSelectedTheme(hass) {
+    if (!hass) {
+      return null;
+    }
+    return hass.selectedTheme ?? hass.themes?.selectedTheme ?? null;
+  }
+
+  _hasThemeContextChanged(oldHass, newHass) {
+    if (!oldHass || !newHass) {
+      return true;
+    }
+
+    if (oldHass.themes !== newHass.themes) {
+      return true;
+    }
+
+    const oldThemes = oldHass.themes;
+    const newThemes = newHass.themes;
+    if (oldThemes && newThemes) {
+      if (oldThemes.darkMode !== newThemes.darkMode) {
+        return true;
+      }
+      if (oldThemes.default_theme !== newThemes.default_theme) {
+        return true;
+      }
+      if (oldThemes.default_dark_theme !== newThemes.default_dark_theme) {
+        return true;
+      }
+    }
+
+    const oldSelected = this._getSelectedTheme(oldHass);
+    const newSelected = this._getSelectedTheme(newHass);
+    if (oldSelected !== newSelected) {
+      return true;
+    }
+    if (oldSelected && newSelected) {
+      if (oldSelected.theme !== newSelected.theme) {
+        return true;
+      }
+      if (oldSelected.dark !== newSelected.dark) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  _getThemeContextKey(hass) {
+    if (!hass) {
+      return "";
+    }
+
+    const themes = hass.themes || {};
+    const selected = this._getSelectedTheme(hass) || {};
+    const computed = getComputedStyle(document.documentElement);
+
+    return [
+      themes.default_theme,
+      themes.default_dark_theme,
+      themes.darkMode,
+      selected.theme,
+      selected.dark,
+      computed.getPropertyValue("--primary-text-color").trim(),
+      computed.getPropertyValue("--card-background-color").trim(),
+      computed.getPropertyValue("--primary-color").trim(),
+    ].join("\0");
+  }
+
+  _syncThemeVariables() {
+    const computed = getComputedStyle(document.documentElement);
+    const themeVars = [
+      "primary-text-color",
+      "secondary-text-color",
+      "card-background-color",
+      "secondary-background-color",
+      "primary-color",
+      "divider-color",
+      "warning-color",
+      "success-color",
+      "error-color",
+      "ha-card-background",
+      "text-primary-color",
+    ];
+    for (const name of themeVars) {
+      const value = computed.getPropertyValue(`--${name}`).trim();
+      if (value) {
+        this.style.setProperty(`--${name}`, value);
+      }
+    }
   }
 
   /**
@@ -417,7 +537,7 @@ class ChoremanderChildCard extends LitElement {
     return css`
       :host {
         display: block;
-        color-scheme: light dark;
+        color: var(--primary-text-color);
         /* Softer pastels (less neon / flatter look) */
         --fun-pink: #f4a7b9;
         --fun-purple: #c4b5fd;
@@ -436,8 +556,13 @@ class ChoremanderChildCard extends LitElement {
         --child-card-header-text-color: var(--primary-text-color);
         --child-card-chore-text-color: var(--primary-text-color);
         --chore-box-border-width: 1px;
-        --cm-subtle-surface: color-mix(in srgb, var(--primary-color) 8%, transparent);
-        --cm-subtle-surface-strong: color-mix(in srgb, var(--primary-color) 12%, transparent);
+        /* Theme-adaptive surfaces: tint card background with text color for contrast in light + dark */
+        --cm-elevated-surface: color-mix(in srgb, var(--primary-text-color) 6%, var(--card-background-color));
+        --cm-elevated-surface-strong: color-mix(in srgb, var(--primary-text-color) 10%, var(--card-background-color));
+        --cm-chore-row-bg: color-mix(in srgb, var(--primary-text-color) 4%, var(--card-background-color));
+        --cm-subtle-surface: color-mix(in srgb, var(--primary-text-color) 5%, var(--card-background-color));
+        --cm-subtle-surface-strong: color-mix(in srgb, var(--primary-text-color) 8%, var(--card-background-color));
+        --cm-filter-inactive-bg: color-mix(in srgb, var(--primary-color) 18%, var(--card-background-color));
         --chore-completed-default-bg: color-mix(in srgb, var(--success-color, #4caf50) 18%, var(--card-background-color));
       }
 
@@ -495,7 +620,8 @@ class ChoremanderChildCard extends LitElement {
         width: calc(64px * var(--child-avatar-scale, 1));
         height: calc(64px * var(--child-avatar-scale, 1));
         border-radius: 50%;
-        background: var(--card-background-color);
+        background: var(--cm-elevated-surface);
+        border: 1px solid var(--divider-color);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -533,7 +659,7 @@ class ChoremanderChildCard extends LitElement {
         display: flex;
         flex-direction: column;
         align-items: center;
-        background: var(--secondary-background-color, var(--card-background-color));
+        background: var(--cm-elevated-surface-strong);
         padding: 10px 12px;
         border-radius: 16px;
         border: 1px solid var(--divider-color);
@@ -575,7 +701,7 @@ class ChoremanderChildCard extends LitElement {
       }
 
       .stars-value.my-stars {
-        color: var(--primary-color, var(--fun-purple));
+        color: var(--child-card-header-text-color, var(--primary-text-color));
       }
 
       .stars-value.waiting-stars {
@@ -598,7 +724,7 @@ class ChoremanderChildCard extends LitElement {
       }
 
       .stars-value.my-stars ha-icon {
-        color: var(--fun-yellow);
+        color: var(--warning-color, var(--fun-yellow));
         animation: spin-star 4s linear infinite;
       }
 
@@ -633,7 +759,7 @@ class ChoremanderChildCard extends LitElement {
       }
 
       .stars-label.my-stars {
-        color: var(--primary-color, var(--fun-purple));
+        color: var(--secondary-text-color, var(--child-card-header-text-color, var(--primary-text-color)));
       }
 
       .stars-label.waiting-stars {
@@ -643,7 +769,7 @@ class ChoremanderChildCard extends LitElement {
       .stars-divider {
         width: 2px;
         height: calc(35px * var(--stars-count-scale, 1));
-        background: var(--divider-color, rgba(0, 0, 0, 0.18));
+        background: var(--divider-color);
         opacity: 0.7;
         margin: 0 4px;
         flex-shrink: 0;
@@ -709,16 +835,15 @@ class ChoremanderChildCard extends LitElement {
         display: flex;
         align-items: center;
         gap: 6px;
-        border: none;
+        border: 1px solid var(--divider-color);
         border-radius: 999px;
         padding: 0.55em 0.85em;
         font-size: var(--time-category-filter-font-size, 0.9rem);
         font-weight: 650;
         cursor: pointer;
         color: var(--child-card-header-text-color, var(--primary-text-color));
-        background: rgba(107, 91, 214, 0.14);
-        background: color-mix(in srgb, var(--primary-color, #6b5bd6) 18%, transparent);
-        transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s ease;
+        background: var(--cm-filter-inactive-bg);
+        transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s ease, border-color 0.15s ease;
       }
 
       .time-category-button:hover {
@@ -732,12 +857,18 @@ class ChoremanderChildCard extends LitElement {
 
       .time-category-button.active {
         background: var(--primary-color, var(--fun-purple));
+        border-color: var(--primary-color, var(--fun-purple));
         color: var(--text-primary-color, #fff);
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
       }
 
       .time-category-button ha-icon {
         --mdc-icon-size: 1.1em;
+        color: var(--primary-color, var(--fun-purple));
+      }
+
+      .time-category-button.active ha-icon {
+        color: var(--text-primary-color, #fff);
       }
 
       /* Time-category grouped sections (match reorder card concept, kid-friendly styling) */
@@ -792,7 +923,7 @@ class ChoremanderChildCard extends LitElement {
 
       /* Individual chore card - optimized for tablet touch, ENTIRE ROW IS CLICKABLE */
       .chore-card {
-        --chore-card-base-bg: var(--secondary-background-color, var(--card-background-color));
+        --chore-card-base-bg: var(--cm-chore-row-bg);
         background: var(--chore-card-base-bg);
         border-radius: 14px;
         padding: 12px 14px;
@@ -897,7 +1028,7 @@ class ChoremanderChildCard extends LitElement {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        background: color-mix(in srgb, var(--card-background-color) 85%, transparent);
+        background: color-mix(in srgb, var(--primary-text-color) 12%, var(--chore-card-base-bg, var(--card-background-color)));
         border: 1px solid var(--divider-color);
         box-shadow: 0 1px 5px rgba(0, 0, 0, 0.08);
       }
@@ -910,19 +1041,19 @@ class ChoremanderChildCard extends LitElement {
       }
 
       .chores-container[data-chore-color]:not([data-chore-color="default"]) .chore-icon-chip {
-        background: color-mix(in srgb, var(--uniform-chore-color) 22%, var(--card-background-color));
+        background: color-mix(in srgb, var(--uniform-chore-color) 22%, var(--chore-card-base-bg, var(--card-background-color)));
         border-color: color-mix(in srgb, var(--uniform-chore-color) 35%, var(--divider-color));
       }
 
       .chore-icon-chip--white,
       .chores-container[data-chore-color]:not([data-chore-color="default"]) .chore-icon-chip--white {
-        background: var(--card-background-color) !important;
+        background: color-mix(in srgb, var(--primary-text-color) 16%, var(--chore-card-base-bg, var(--card-background-color))) !important;
         border-color: var(--divider-color) !important;
       }
 
       .chore-icon-chip ha-icon {
         --mdc-icon-size: 22px;
-        color: var(--primary-text-color);
+        color: var(--child-card-chore-text-color, var(--primary-text-color));
       }
 
       .chore-emoji {
@@ -2845,7 +2976,6 @@ class ChoremanderChildCardEditor extends LitElement {
     return css`
       :host {
         display: block;
-        color-scheme: light dark;
       }
 
       .form-group {
