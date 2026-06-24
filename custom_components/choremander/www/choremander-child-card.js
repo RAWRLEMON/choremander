@@ -488,8 +488,8 @@ class ChoremanderChildCard extends LitElement {
 
       .avatar-container {
         position: relative;
-        width: 64px;
-        height: 64px;
+        width: calc(64px * var(--child-avatar-scale, 1));
+        height: calc(64px * var(--child-avatar-scale, 1));
         border-radius: 50%;
         background: var(--card-background-color, rgba(255, 255, 255, 0.85));
         display: flex;
@@ -505,7 +505,7 @@ class ChoremanderChildCard extends LitElement {
       }
 
       .avatar-container ha-icon {
-        --mdc-icon-size: 50px;
+        --mdc-icon-size: calc(50px * var(--child-avatar-scale, 1));
         color: var(--primary-color, var(--fun-purple));
       }
 
@@ -557,7 +557,11 @@ class ChoremanderChildCard extends LitElement {
       }
 
       .stars-value {
-        font-size: clamp(1rem, 4vw, 1.8rem);
+        font-size: clamp(
+          calc(1rem * var(--stars-count-scale, 1)),
+          calc(4vw * var(--stars-count-scale, 1)),
+          calc(1.8rem * var(--stars-count-scale, 1))
+        );
         font-weight: bold;
         line-height: 1;
         display: flex;
@@ -572,12 +576,20 @@ class ChoremanderChildCard extends LitElement {
 
       .stars-value.waiting-stars {
         color: var(--fun-orange);
-        font-size: clamp(0.85rem, 3.5vw, 1.4rem);
+        font-size: clamp(
+          calc(0.85rem * var(--stars-count-scale, 1)),
+          calc(3.5vw * var(--stars-count-scale, 1)),
+          calc(1.4rem * var(--stars-count-scale, 1))
+        );
         opacity: 0.9;
       }
 
       .stars-value ha-icon {
-        --mdc-icon-size: clamp(16px, 4vw, 24px);
+        --mdc-icon-size: clamp(
+          calc(16px * var(--stars-count-scale, 1)),
+          calc(4vw * var(--stars-count-scale, 1)),
+          calc(24px * var(--stars-count-scale, 1))
+        );
         flex-shrink: 0;
       }
 
@@ -605,7 +617,11 @@ class ChoremanderChildCard extends LitElement {
       }
 
       .stars-label {
-        font-size: clamp(0.55rem, 2vw, 0.7rem);
+        font-size: clamp(
+          calc(0.55rem * var(--stars-count-scale, 1)),
+          calc(2vw * var(--stars-count-scale, 1)),
+          calc(0.7rem * var(--stars-count-scale, 1))
+        );
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
@@ -622,7 +638,7 @@ class ChoremanderChildCard extends LitElement {
 
       .stars-divider {
         width: 2px;
-        height: 35px;
+        height: calc(35px * var(--stars-count-scale, 1));
         background: var(--divider-color, rgba(0, 0, 0, 0.18));
         opacity: 0.7;
         margin: 0 4px;
@@ -1261,12 +1277,12 @@ class ChoremanderChildCard extends LitElement {
         }
 
         .avatar-container {
-          width: 48px;
-          height: 48px;
+          width: calc(48px * var(--child-avatar-scale, 1));
+          height: calc(48px * var(--child-avatar-scale, 1));
         }
 
         .avatar-container ha-icon {
-          --mdc-icon-size: 34px;
+          --mdc-icon-size: calc(34px * var(--child-avatar-scale, 1));
         }
 
         .child-name {
@@ -1281,15 +1297,27 @@ class ChoremanderChildCard extends LitElement {
         }
 
         .stars-value {
-          font-size: clamp(0.9rem, 3.2vw, 1.2rem);
+          font-size: clamp(
+            calc(0.9rem * var(--stars-count-scale, 1)),
+            calc(3.2vw * var(--stars-count-scale, 1)),
+            calc(1.2rem * var(--stars-count-scale, 1))
+          );
         }
 
         .stars-value.waiting-stars {
-          font-size: clamp(0.8rem, 3vw, 1rem);
+          font-size: clamp(
+            calc(0.8rem * var(--stars-count-scale, 1)),
+            calc(3vw * var(--stars-count-scale, 1)),
+            calc(1rem * var(--stars-count-scale, 1))
+          );
         }
 
         .stars-label {
-          font-size: clamp(0.5rem, 1.8vw, 0.62rem);
+          font-size: clamp(
+            calc(0.5rem * var(--stars-count-scale, 1)),
+            calc(1.8vw * var(--stars-count-scale, 1)),
+            calc(0.62rem * var(--stars-count-scale, 1))
+          );
         }
 
         .chores-container {
@@ -1484,6 +1512,8 @@ class ChoremanderChildCard extends LitElement {
       undo_sound: "undo",     // Sound to play when undoing a completion
       line_size: "medium",
       child_name_font_size: "default",
+      child_avatar_scale: "default",
+      stars_count_scale: "default",
       time_category_filter_font_size: "default",
       time_category_header_font_size: "default",
       chore_box_font_size: "default",
@@ -1530,6 +1560,8 @@ class ChoremanderChildCard extends LitElement {
       header_text_color: "default",
       chore_text_color: "default",
       child_name_font_size: "default",
+      child_avatar_scale: "default",
+      stars_count_scale: "default",
       time_category_filter_font_size: "default",
       time_category_header_font_size: "default",
       chore_box_font_size: "default",
@@ -1759,6 +1791,12 @@ class ChoremanderChildCard extends LitElement {
     const childNameSize = this._getChildNameFontSizeCss();
     if (childNameSize) parts.push(`--child-name-font-size: ${childNameSize}`);
 
+    const avatarScale = this._getChildAvatarScaleCss();
+    if (avatarScale) parts.push(avatarScale);
+
+    const starsCountScale = this._getStarsCountScaleCss();
+    if (starsCountScale) parts.push(starsCountScale);
+
     const filterButtonSize = this._getTimeCategoryFilterFontSizeCss();
     if (filterButtonSize) parts.push(`--time-category-filter-font-size: ${filterButtonSize}`);
 
@@ -1933,6 +1971,26 @@ class ChoremanderChildCard extends LitElement {
     if (num == null || !Number.isFinite(num) || num <= 0) return null;
 
     return `--chore-checkbox-scale: ${num}`;
+  }
+
+  _getChildAvatarScaleCss() {
+    const raw = this.config ? this.config.child_avatar_scale : undefined;
+    if (!raw || raw === "default") return null;
+
+    const num = this._parseNumericFontSizePx(raw);
+    if (num == null || !Number.isFinite(num) || num <= 0) return null;
+
+    return `--child-avatar-scale: ${num}`;
+  }
+
+  _getStarsCountScaleCss() {
+    const raw = this.config ? this.config.stars_count_scale : undefined;
+    if (!raw || raw === "default") return null;
+
+    const num = this._parseNumericFontSizePx(raw);
+    if (num == null || !Number.isFinite(num) || num <= 0) return null;
+
+    return `--stars-count-scale: ${num}`;
   }
 
   _getChoreCompletedBackgroundCss() {
@@ -3029,6 +3087,36 @@ class ChoremanderChildCardEditor extends LitElement {
       </div>
 
       <div class="form-group">
+        <label>Child Avatar Scale</label>
+        <input
+          type="number"
+          min="0.1"
+          step="0.05"
+          .value="${this._getNumericFontSizeInputValue(this.config.child_avatar_scale)}"
+          @input="${this._childAvatarScaleChanged}"
+          placeholder="Default (1.0)"
+        />
+        <small>
+          Scales the child icon/logo circle and icon in the header (1.0 = default size).
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label>Stars Count Scale</label>
+        <input
+          type="number"
+          min="0.1"
+          step="0.05"
+          .value="${this._getNumericFontSizeInputValue(this.config.stars_count_scale)}"
+          @input="${this._starsCountScaleChanged}"
+          placeholder="Default (1.0)"
+        />
+        <small>
+          Scales the points/stars count, star icon, and labels in the header (1.0 = default size).
+        </small>
+      </div>
+
+      <div class="form-group">
         <label>Time Category Button Font Size</label>
         <input
           type="number"
@@ -3346,6 +3434,14 @@ class ChoremanderChildCardEditor extends LitElement {
 
   _childNameFontSizeChanged(e) {
     this._updateConfig("child_name_font_size", e.target.value);
+  }
+
+  _childAvatarScaleChanged(e) {
+    this._updateConfig("child_avatar_scale", e.target.value);
+  }
+
+  _starsCountScaleChanged(e) {
+    this._updateConfig("stars_count_scale", e.target.value);
   }
 
   _timeCategoryFilterFontSizeChanged(e) {
