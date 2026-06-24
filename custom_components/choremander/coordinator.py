@@ -10,7 +10,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
-from .models import Child, Chore, ChoreCompletion, Reward, RewardClaim
+from .models import Child, Chore, ChoreCompletion, Reward, RewardClaim, normalize_time_categories
 from .storage import ChoremanderStorage
 
 _LOGGER = logging.getLogger(__name__)
@@ -84,7 +84,7 @@ class ChoremanderCoordinator(DataUpdateCoordinator):
         due_days: list[str] | None = None,
         assigned_to: list[str] | None = None,
         requires_approval: bool = True,
-        time_category: str = "anytime",
+        time_categories: list[str] | None = None,
         daily_limit: int = 1,
         completion_sound: str = "coin",
         completion_percentage_per_month: int = 100,
@@ -98,7 +98,7 @@ class ChoremanderCoordinator(DataUpdateCoordinator):
             due_days=due_days or [],
             assigned_to=assigned_to or [],
             requires_approval=requires_approval,
-            time_category=time_category,
+            time_categories=normalize_time_categories(time_categories),
             daily_limit=daily_limit,
             completion_sound=completion_sound,
             completion_percentage_per_month=completion_percentage_per_month,
@@ -118,7 +118,7 @@ class ChoremanderCoordinator(DataUpdateCoordinator):
         due_days: list[str] | None = None,
         assigned_to: list[str] | None = None,
         requires_approval: bool = True,
-        time_category: str = "anytime",
+        time_categories: list[str] | None = None,
         daily_limit: int = 1,
         completion_sound: str = "coin",
         completion_percentage_per_month: int = 100,
@@ -137,7 +137,7 @@ class ChoremanderCoordinator(DataUpdateCoordinator):
                 due_days=due_days or [],
                 assigned_to=assigned_to or [],
                 requires_approval=requires_approval,
-                time_category=time_category,
+                time_categories=normalize_time_categories(time_categories),
                 daily_limit=daily_limit,
                 completion_sound=completion_sound,
                 completion_percentage_per_month=completion_percentage_per_month,

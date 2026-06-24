@@ -162,7 +162,8 @@ class ChoremandorOverallStatsSensor(ChoremandorBaseSensor):
                 "id": c.id,
                 "name": c.name,
                 "points": c.points,
-                "time_category": c.time_category,
+                "time_categories": c.time_categories,
+                "time_category": ", ".join(c.time_categories),
                 "daily_limit": getattr(c, 'daily_limit', 1),
                 "assigned_to": assigned_to,
                 "completion_sound": getattr(c, 'completion_sound', 'coin'),
@@ -339,7 +340,16 @@ class ChildStatsSensor(ChoremandorBaseSensor):
             "total_chores_completed": child.total_chores_completed,
             "current_streak": child.current_streak,
             "best_streak": child.best_streak,
-            "assigned_chores": [{"id": c.id, "name": c.name, "points": c.points, "time_category": c.time_category} for c in assigned_chores],
+            "assigned_chores": [
+                {
+                    "id": c.id,
+                    "name": c.name,
+                    "points": c.points,
+                    "time_categories": c.time_categories,
+                    "time_category": ", ".join(c.time_categories),
+                }
+                for c in assigned_chores
+            ],
             "chore_order": child.chore_order,
         }
 
@@ -389,7 +399,8 @@ class PendingApprovalsSensor(ChoremandorBaseSensor):
                     "chore_name": chore.name,
                     "chore_id": chore.id,
                     "points": chore.points,
-                    "time_category": chore.time_category,
+                    "time_categories": chore.time_categories,
+                    "time_category": chore.time_categories[0] if chore.time_categories else "anytime",
                     "completed_at": comp.completed_at.isoformat(),
                 })
 

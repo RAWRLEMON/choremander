@@ -296,14 +296,40 @@ class ChoremanderManageChoresCard extends LitElement {
     `;
   }
 
+  _getChoreTimeCategories(chore) {
+    if (Array.isArray(chore?.time_categories) && chore.time_categories.length > 0) {
+      return chore.time_categories.map((c) => String(c).trim().toLowerCase());
+    }
+    const legacy = String((chore && chore.time_category) || "").trim().toLowerCase();
+    if (!legacy) return ["anytime"];
+    if (legacy.includes(",")) {
+      return legacy.split(",").map((c) => c.trim().toLowerCase()).filter(Boolean);
+    }
+    return [legacy];
+  }
+
+  _formatTimeCategories(chore) {
+    const categories = this._getChoreTimeCategories(chore);
+    if (categories.length === 1 && categories[0] === "anytime") return "anytime";
+    return categories.join(", ");
+  }
+
+  _choreMatchesTimeCategory(chore, timeCategory) {
+    if (timeCategory === "all") return true;
+    const categories = this._getChoreTimeCategories(chore);
+    if (categories.includes("anytime")) return true;
+    return categories.includes(timeCategory);
+  }
+
   _renderRow(chore, children) {
     const assigned = Array.isArray(chore.assigned_to) ? chore.assigned_to : [];
     const names = assigned.length === 0 ? "All children" : assigned.map((id) => children.find((c) => c.id === id)?.name || id).join(", ");
+    const timeLabel = this._formatTimeCategories(chore);
     return html`
       <div class="list-row">
         <div class="row-main">
           <div class="name">${chore.name}</div>
-          <div class="sub">${chore.points} pts • ${chore.time_category || "anytime"} • ${names}</div>
+          <div class="sub">${chore.points} pts • ${timeLabel} • ${names}</div>
         </div>
         <div class="row-actions">
           <button class="icon-button" title="Edit chore" @click="${() => this._openDialog("edit", chore)}"><ha-icon icon="mdi:pencil"></ha-icon></button>
@@ -317,6 +343,8 @@ class ChoremanderManageChoresCard extends LitElement {
     const mode = this._dialog.mode;
     const chore = this._dialog.chore || {};
     const assignedSet = new Set(Array.isArray(chore.assigned_to) ? chore.assigned_to : []);
+    const selectedCategories = new Set(this._getChoreTimeCategories(chore));
+    const timeOptions = ["morning", "afternoon", "evening", "night", "anytime"];
     return html`
       <div class="dialog-overlay" @click="${this._closeDialog}">
         <div class="dialog" @click="${(e) => e.stopPropagation()}">
@@ -324,10 +352,10 @@ class ChoremanderManageChoresCard extends LitElement {
           <div class="form-grid">
             <div class="full"><label>Name</label><input id="name" type="text" .value="${chore.name || ""}" /></div>
             <div><label>Points</label><input id="points" type="number" min="1" .value="${String(chore.points || 10)}" /></div>
-            <div>
-              <label>Time Category</label>
-              <select id="time_category">
-                ${["morning", "afternoon", "evening", "night", "anytime"].map((v) => html`<option value="${v}" ?selected="${(chore.time_category || "anytime") === v}">${v}</option>`)}
+            <div class="full">
+              <label>Time Categories</label>
+              <select id="time_categories" multiple size="5">
+                ${timeOptions.map((v) => html`<option value="${v}" ?selected="${selectedCategories.has(v)}">${v}</option>`)}
               </select>
             </div>
             <div><label>Daily Limit</label><input id="daily_limit" type="number" min="1" .value="${String(chore.daily_limit || 1)}" /></div>
@@ -389,6 +417,7 @@ class ChoremanderManageChoresCard extends LitElement {
       this._showNotice("Name is required");
       return;
     }
+    const selectedTimeCategories = this._getSelectedValues(root.querySelector("#time_categories"));
     const payload = {
       name,
       points: Number(root.querySelector("#points")?.value || 10),
@@ -396,7 +425,7 @@ class ChoremanderManageChoresCard extends LitElement {
       due_days: this._parseCsv(root.querySelector("#due_days")?.value),
       assigned_to: this._getSelectedValues(root.querySelector("#assigned_to")),
       requires_approval: root.querySelector("#requires_approval")?.value === "true",
-      time_category: root.querySelector("#time_category")?.value || "anytime",
+      time_categories: selectedTimeCategories.length > 0 ? selectedTimeCategories : ["anytime"],
       daily_limit: Number(root.querySelector("#daily_limit")?.value || 1),
       completion_sound: root.querySelector("#completion_sound")?.value || "coin",
       completion_percentage_per_month: Number(root.querySelector("#completion_percentage_per_month")?.value || 100),

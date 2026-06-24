@@ -33,6 +33,7 @@ from .const import (
     ATTR_REQUIRES_APPROVAL,
     ATTR_REWARD_ID,
     ATTR_TIME_CATEGORY,
+    ATTR_TIME_CATEGORIES,
     DOMAIN,
     SERVICE_ADD_CHILD,
     SERVICE_ADD_CHORE,
@@ -53,7 +54,7 @@ from .const import (
     SERVICE_UPDATE_REWARD,
 )
 from .coordinator import ChoremanderCoordinator
-from .models import Child, Chore, Reward
+from .models import Child, Chore, Reward, normalize_time_categories
 from .frontend import async_register_cards, async_register_frontend
 
 _LOGGER = logging.getLogger(__name__)
@@ -62,6 +63,15 @@ PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BUTTON, Platform.BINARY_S
 
 # Track if services are registered
 SERVICES_REGISTERED = "services_registered"
+
+
+def _resolve_time_categories(data: dict[str, Any], default: list[str] | None = None) -> list[str]:
+    """Resolve time categories from service call data (supports legacy single value)."""
+    if ATTR_TIME_CATEGORIES in data:
+        return normalize_time_categories(data[ATTR_TIME_CATEGORIES])
+    if ATTR_TIME_CATEGORY in data:
+        return normalize_time_categories(data[ATTR_TIME_CATEGORY])
+    return normalize_time_categories(default)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -258,7 +268,7 @@ async def _async_register_services(hass: HomeAssistant) -> None:
             due_days=call.data.get(ATTR_DUE_DAYS, []),
             assigned_to=call.data.get(ATTR_ASSIGNED_TO, []),
             requires_approval=call.data.get(ATTR_REQUIRES_APPROVAL, True),
-            time_category=call.data.get(ATTR_TIME_CATEGORY, "anytime"),
+            time_categories=_resolve_time_categories(call.data, ["anytime"]),
             daily_limit=call.data.get(ATTR_DAILY_LIMIT, 1),
             completion_sound=call.data.get(ATTR_COMPLETION_SOUND, "coin"),
             completion_percentage_per_month=call.data.get(ATTR_COMPLETION_PERCENTAGE_PER_MONTH, 100),
@@ -286,7 +296,7 @@ async def _async_register_services(hass: HomeAssistant) -> None:
             due_days=call.data.get(ATTR_DUE_DAYS, chore.due_days),
             assigned_to=call.data.get(ATTR_ASSIGNED_TO, chore.assigned_to),
             requires_approval=call.data.get(ATTR_REQUIRES_APPROVAL, chore.requires_approval),
-            time_category=call.data.get(ATTR_TIME_CATEGORY, chore.time_category),
+            time_categories=_resolve_time_categories(call.data, chore.time_categories),
             daily_limit=call.data.get(ATTR_DAILY_LIMIT, chore.daily_limit),
             completion_sound=call.data.get(ATTR_COMPLETION_SOUND, chore.completion_sound),
             completion_percentage_per_month=call.data.get(
@@ -496,7 +506,8 @@ async def _async_register_services(hass: HomeAssistant) -> None:
                 vol.Optional(ATTR_DUE_DAYS, default=[]): vol.All(cv.ensure_list, [cv.string]),
                 vol.Optional(ATTR_ASSIGNED_TO, default=[]): vol.All(cv.ensure_list, [cv.string]),
                 vol.Optional(ATTR_REQUIRES_APPROVAL, default=True): cv.boolean,
-                vol.Optional(ATTR_TIME_CATEGORY, default="anytime"): cv.string,
+                vol.Optional(ATTR_TIME_CATEGORY): cv.string,
+                vol.Optional(ATTR_TIME_CATEGORIES): vol.All(cv.ensure_list, [cv.string]),
                 vol.Optional(ATTR_DAILY_LIMIT, default=1): cv.positive_int,
                 vol.Optional(ATTR_COMPLETION_SOUND, default="coin"): cv.string,
                 vol.Optional(ATTR_COMPLETION_PERCENTAGE_PER_MONTH, default=100): vol.All(
@@ -523,6 +534,7 @@ async def _async_register_services(hass: HomeAssistant) -> None:
                 vol.Optional(ATTR_ASSIGNED_TO): vol.All(cv.ensure_list, [cv.string]),
                 vol.Optional(ATTR_REQUIRES_APPROVAL): cv.boolean,
                 vol.Optional(ATTR_TIME_CATEGORY): cv.string,
+                vol.Optional(ATTR_TIME_CATEGORIES): vol.All(cv.ensure_list, [cv.string]),
                 vol.Optional(ATTR_DAILY_LIMIT): cv.positive_int,
                 vol.Optional(ATTR_COMPLETION_SOUND): cv.string,
                 vol.Optional(ATTR_COMPLETION_PERCENTAGE_PER_MONTH): vol.All(

@@ -2004,12 +2004,29 @@ class ChoremanderChildCard extends LitElement {
     return map[size] || null;
   }
 
+  _getChoreTimeCategories(chore) {
+    if (Array.isArray(chore?.time_categories) && chore.time_categories.length > 0) {
+      return chore.time_categories.map((c) => String(c).trim().toLowerCase());
+    }
+    const legacy = String((chore && chore.time_category) || "").trim().toLowerCase();
+    if (!legacy) return ["anytime"];
+    if (legacy.includes(",")) {
+      return legacy.split(",").map((c) => c.trim().toLowerCase()).filter(Boolean);
+    }
+    return [legacy];
+  }
+
+  _choreMatchesTimeCategory(chore, timeCategory) {
+    if (timeCategory === "all") return true;
+    const categories = this._getChoreTimeCategories(chore);
+    if (categories.includes("anytime")) return true;
+    return categories.includes(timeCategory);
+  }
+
   _getNormalizedTimeCategory(chore) {
-    const category = String((chore && chore.time_category) || "").trim().toLowerCase();
-    const known = new Set(["morning", "afternoon", "evening", "night", "anytime"]);
-    if (known.has(category)) return category;
-    // Unknown/missing categories get treated as anytime so they still show up.
-    return "anytime";
+    const categories = this._getChoreTimeCategories(chore);
+    if (categories.includes("anytime")) return "anytime";
+    return categories[0] || "anytime";
   }
 
   _renderChoresByTimeCategory({ activeCategory, chores, child, todaysCompletions, sortDoneLast }) {
@@ -2033,7 +2050,10 @@ class ChoremanderChildCard extends LitElement {
 
     return html`
       ${uniqueCategories.map((category) => {
-        const categoryChores = chores.filter((chore) => this._getNormalizedTimeCategory(chore) === category);
+        const categoryChores = chores.filter((chore) => {
+          const categories = this._getChoreTimeCategories(chore);
+          return categories.includes(category);
+        });
         if (categoryChores.length === 0) {
           return "";
         }
@@ -2073,10 +2093,7 @@ class ChoremanderChildCard extends LitElement {
     // First, filter chores for this child and time category
     const filteredChores = chores.filter(chore => {
       // Check time category
-      const matchesTime =
-        timeCategory === "all" ||
-        chore.time_category === timeCategory ||
-        chore.time_category === "anytime";
+      const matchesTime = this._choreMatchesTimeCategory(chore, timeCategory);
 
       // Check if chore is assigned to this child
       const isAssignedToChild = this._isChoreAssignedToChild(chore, childId);
@@ -2208,10 +2225,12 @@ class ChoremanderChildCard extends LitElement {
 
     chores.forEach((chore) => {
       if (!this._isChoreAssignedToChild(chore, childId)) return;
-      const normalized = this._getNormalizedTimeCategory(chore);
-      if (Object.prototype.hasOwnProperty.call(counts, normalized)) {
-        counts[normalized] += 1;
-      }
+      const categories = this._getChoreTimeCategories(chore);
+      categories.forEach((category) => {
+        if (Object.prototype.hasOwnProperty.call(counts, category)) {
+          counts[category] += 1;
+        }
+      });
     });
 
     return ["morning", "afternoon", "evening", "night", "anytime"].filter(

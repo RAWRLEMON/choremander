@@ -24,7 +24,7 @@ from .const import (
     TIME_CATEGORIES,
     TIME_CATEGORY_ICONS,
 )
-from .models import Chore
+from .models import Chore, normalize_time_categories
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -266,7 +266,10 @@ class ChoremanderOptionsFlow(config_entries.OptionsFlow):
         }
 
         for chore in chores:
-            time_label = f" [{chore.time_category}]" if chore.time_category != "anytime" else ""
+            cats = chore.time_categories
+            time_label = ""
+            if cats != ["anytime"]:
+                time_label = f" [{', '.join(cats)}]"
             menu_options[f"edit_chore_{chore.id}"] = f"Edit: {chore.name} ({chore.points} pts){time_label}"
 
         menu_options["init"] = "Back to Main Menu"
@@ -295,7 +298,7 @@ class ChoremanderOptionsFlow(config_entries.OptionsFlow):
                     due_days=user_input.get("due_days", []),
                     assigned_to=user_input.get("assigned_to", []),
                     requires_approval=user_input.get("requires_approval", True),
-                    time_category=user_input.get("time_category", "anytime"),
+                    time_categories=normalize_time_categories(user_input.get("time_categories", [])),
                     daily_limit=int(user_input.get("daily_limit", 1)),
                     completion_percentage_per_month=int(user_input.get("completion_percentage_per_month", 100)),
                     completion_sound=user_input.get("completion_sound", DEFAULT_COMPLETION_SOUND),
@@ -325,10 +328,11 @@ class ChoremanderOptionsFlow(config_entries.OptionsFlow):
             vol.Required("points", default=10): selector.NumberSelector(
                 selector.NumberSelectorConfig(min=0, max=1000, mode=selector.NumberSelectorMode.BOX)
             ),
-            vol.Required("time_category", default="anytime"): selector.SelectSelector(
+            vol.Optional("time_categories", default=[]): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=time_options,
                     mode=selector.SelectSelectorMode.DROPDOWN,
+                    multiple=True,
                 )
             ),
             vol.Optional("due_days", default=[]): selector.SelectSelector(
@@ -403,7 +407,7 @@ class ChoremanderOptionsFlow(config_entries.OptionsFlow):
                         due_days=user_input.get("due_days", []),
                         assigned_to=user_input.get("assigned_to", []),
                         requires_approval=user_input.get("requires_approval", True),
-                        time_category=user_input.get("time_category", "anytime"),
+                        time_categories=normalize_time_categories(user_input.get("time_categories", [])),
                         daily_limit=int(user_input.get("daily_limit", 1)),
                         completion_percentage_per_month=int(user_input.get("completion_percentage_per_month", 100)),
                         completion_sound=user_input.get("completion_sound", DEFAULT_COMPLETION_SOUND),
@@ -436,10 +440,11 @@ class ChoremanderOptionsFlow(config_entries.OptionsFlow):
             vol.Required("points", default=10): selector.NumberSelector(
                 selector.NumberSelectorConfig(min=0, max=1000, mode=selector.NumberSelectorMode.BOX)
             ),
-            vol.Required("time_category", default="anytime"): selector.SelectSelector(
+            vol.Optional("time_categories", default=[]): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=time_options,
                     mode=selector.SelectSelectorMode.DROPDOWN,
+                    multiple=True,
                 )
             ),
             vol.Optional("due_days", default=[]): selector.SelectSelector(
@@ -512,7 +517,9 @@ class ChoremanderOptionsFlow(config_entries.OptionsFlow):
                 chore.due_days = user_input.get("due_days", chore.due_days)
                 chore.assigned_to = user_input.get("assigned_to", chore.assigned_to)
                 chore.requires_approval = user_input.get("requires_approval", chore.requires_approval)
-                chore.time_category = user_input.get("time_category", chore.time_category)
+                chore.time_categories = normalize_time_categories(
+                    user_input.get("time_categories", chore.time_categories)
+                )
                 chore.daily_limit = int(user_input.get("daily_limit", chore.daily_limit))
                 chore.completion_percentage_per_month = int(user_input.get("completion_percentage_per_month", getattr(chore, 'completion_percentage_per_month', 100)))
                 chore.completion_sound = user_input.get("completion_sound", chore.completion_sound)
@@ -545,10 +552,11 @@ class ChoremanderOptionsFlow(config_entries.OptionsFlow):
             vol.Required("points", default=chore.points): selector.NumberSelector(
                 selector.NumberSelectorConfig(min=0, max=1000, mode=selector.NumberSelectorMode.BOX)
             ),
-            vol.Required("time_category", default=chore.time_category): selector.SelectSelector(
+            vol.Optional("time_categories", default=chore.time_categories): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=time_options,
                     mode=selector.SelectSelectorMode.DROPDOWN,
+                    multiple=True,
                 )
             ),
             vol.Optional("due_days", default=chore.due_days): selector.SelectSelector(

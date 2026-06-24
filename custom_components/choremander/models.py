@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 from typing import Any
 import uuid
 
+from .const import TIME_CATEGORIES
+
 
 def generate_id() -> str:
     """Generate a unique ID."""
@@ -49,6 +51,42 @@ def format_datetime(dt: datetime | None) -> str | None:
     utc_dt = dt.astimezone(timezone.utc)
     # Use isoformat but replace +00:00 with Z for cleaner output
     return utc_dt.isoformat().replace("+00:00", "Z")
+
+
+def parse_time_categories(data: dict[str, Any]) -> list[str]:
+    """Parse time categories from storage, migrating legacy single-value field."""
+    valid = set(TIME_CATEGORIES)
+
+    if "time_categories" in data:
+        raw = data["time_categories"]
+        if isinstance(raw, list):
+            categories = [str(c).strip().lower() for c in raw if c]
+        else:
+            categories = [str(raw).strip().lower()] if raw else []
+    elif "time_category" in data:
+        tc = str(data.get("time_category", "anytime")).strip().lower()
+        categories = [tc] if tc else []
+    else:
+        categories = []
+
+    categories = [c for c in categories if c in valid]
+    if not categories or "anytime" in categories:
+        return ["anytime"]
+    return categories
+
+
+def normalize_time_categories(categories: list[str] | str | None) -> list[str]:
+    """Normalize a time category selection to a valid list."""
+    if categories is None:
+        return ["anytime"]
+    if isinstance(categories, str):
+        categories = [categories]
+    valid = set(TIME_CATEGORIES)
+    normalized = [str(c).strip().lower() for c in categories if c and str(c).strip()]
+    normalized = [c for c in normalized if c in valid]
+    if not normalized or "anytime" in normalized:
+        return ["anytime"]
+    return normalized
 
 
 @dataclass
@@ -108,7 +146,7 @@ class Chore:
     due_days: list[str] = field(default_factory=list)
     assigned_to: list[str] = field(default_factory=list)  # List of child IDs
     requires_approval: bool = True
-    time_category: str = "anytime"  # morning, afternoon, evening, night, anytime
+    time_categories: list[str] = field(default_factory=lambda: ["anytime"])
     daily_limit: int = 1
     completion_sound: str = "coin"  # Sound to play on completion
     completion_percentage_per_month: int = 100  # Expected completion rate (100 = every day)
@@ -126,7 +164,7 @@ class Chore:
             due_days=data.get("due_days", []),
             assigned_to=data.get("assigned_to", []),
             requires_approval=data.get("requires_approval", True),
-            time_category=data.get("time_category", "anytime"),
+            time_categories=parse_time_categories(data),
             daily_limit=data.get("daily_limit", 1),
             completion_sound=data.get("completion_sound", "coin"),
             completion_percentage_per_month=data.get("completion_percentage_per_month", 100),
@@ -144,7 +182,7 @@ class Chore:
             "due_days": self.due_days,
             "assigned_to": self.assigned_to,
             "requires_approval": self.requires_approval,
-            "time_category": self.time_category,
+            "time_categories": self.time_categories,
             "daily_limit": self.daily_limit,
             "completion_sound": self.completion_sound,
             "completion_percentage_per_month": self.completion_percentage_per_month,

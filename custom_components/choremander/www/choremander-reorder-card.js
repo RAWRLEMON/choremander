@@ -512,6 +512,22 @@ class ChoremanderReorderCard extends LitElement {
     return children[0].id;
   }
 
+  _getChoreTimeCategories(chore) {
+    if (Array.isArray(chore?.time_categories) && chore.time_categories.length > 0) {
+      return chore.time_categories.map((c) => String(c).trim().toLowerCase());
+    }
+    const legacy = String((chore && chore.time_category) || "").trim().toLowerCase();
+    if (!legacy) return ["anytime"];
+    if (legacy.includes(",")) {
+      return legacy.split(",").map((c) => c.trim().toLowerCase()).filter(Boolean);
+    }
+    return [legacy];
+  }
+
+  _choreBelongsToTimeCategory(chore, category) {
+    return this._getChoreTimeCategories(chore).includes(category);
+  }
+
   _initializeLocalOrder() {
     const entity = this.hass.states[this.config.entity];
     if (!entity) return;
@@ -540,7 +556,7 @@ class ChoremanderReorderCard extends LitElement {
 
       for (const category of timeCategories) {
         const categoryChores = childChores.filter(
-          (c) => c.time_category === category
+          (c) => this._choreBelongsToTimeCategory(c, category)
         );
 
         // Sort by server order
@@ -703,7 +719,7 @@ class ChoremanderReorderCard extends LitElement {
             // Also include any chores in this category that aren't in the order yet
             const orderedIds = new Set(categoryChoreIds);
             const missingChores = childChores.filter(
-              (c) => c.time_category === category && !orderedIds.has(c.id)
+              (c) => this._choreBelongsToTimeCategory(c, category) && !orderedIds.has(c.id)
             );
             const allCategoryChores = [...categoryChores, ...missingChores];
 
