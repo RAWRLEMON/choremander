@@ -378,6 +378,25 @@ class ChoremanderApprovalsCard extends LitElement {
     `;
   }
 
+  _getTimeCategories(item) {
+    if (!item) return ["anytime"];
+
+    const rawCategories = item.time_categories;
+    if (Array.isArray(rawCategories) && rawCategories.length > 0) {
+      return rawCategories.map((c) => String(c).trim().toLowerCase()).filter(Boolean);
+    }
+    if (typeof rawCategories === "string" && rawCategories.trim()) {
+      return rawCategories.split(",").map((c) => c.trim().toLowerCase()).filter(Boolean);
+    }
+
+    const legacy = String(item.time_category || "").trim().toLowerCase();
+    if (!legacy) return ["anytime"];
+    if (legacy.includes(",")) {
+      return legacy.split(",").map((c) => c.trim().toLowerCase()).filter(Boolean);
+    }
+    return [legacy];
+  }
+
   _filterByChild(completions) {
     if (!this.config.child_id) {
       return completions;
@@ -402,7 +421,7 @@ class ChoremanderApprovalsCard extends LitElement {
         };
       }
 
-      const timeCategory = completion.time_category || "anytime";
+      const timeCategory = this._getTimeCategories(completion)[0] || "anytime";
       if (!groups[dayKey].timeCategories[timeCategory]) {
         groups[dayKey].timeCategories[timeCategory] = [];
       }

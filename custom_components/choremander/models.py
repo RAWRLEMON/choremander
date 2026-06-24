@@ -53,26 +53,47 @@ def format_datetime(dt: datetime | None) -> str | None:
     return utc_dt.isoformat().replace("+00:00", "Z")
 
 
+def _split_time_category_values(raw: Any) -> list[str]:
+    """Split a time category value into individual category strings."""
+    if isinstance(raw, list):
+        return [str(c).strip().lower() for c in raw if c and str(c).strip()]
+    if not raw:
+        return []
+    text = str(raw).strip().lower()
+    if not text:
+        return []
+    if "," in text:
+        return [part.strip().lower() for part in text.split(",") if part.strip()]
+    return [text]
+
+
+def _finalize_time_categories(categories: list[str]) -> list[str]:
+    """Resolve validated time categories to their stored form."""
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for category in categories:
+        if category not in seen:
+            seen.add(category)
+            deduped.append(category)
+
+    if not deduped:
+        return ["anytime"]
+    return deduped
+
+
 def parse_time_categories(data: dict[str, Any]) -> list[str]:
     """Parse time categories from storage, migrating legacy single-value field."""
     valid = set(TIME_CATEGORIES)
 
     if "time_categories" in data:
-        raw = data["time_categories"]
-        if isinstance(raw, list):
-            categories = [str(c).strip().lower() for c in raw if c]
-        else:
-            categories = [str(raw).strip().lower()] if raw else []
+        categories = _split_time_category_values(data["time_categories"])
     elif "time_category" in data:
-        tc = str(data.get("time_category", "anytime")).strip().lower()
-        categories = [tc] if tc else []
+        categories = _split_time_category_values(data.get("time_category", "anytime"))
     else:
         categories = []
 
     categories = [c for c in categories if c in valid]
-    if not categories or "anytime" in categories:
-        return ["anytime"]
-    return categories
+    return _finalize_time_categories(categories)
 
 
 def normalize_time_categories(categories: list[str] | str | None) -> list[str]:
@@ -80,13 +101,11 @@ def normalize_time_categories(categories: list[str] | str | None) -> list[str]:
     if categories is None:
         return ["anytime"]
     if isinstance(categories, str):
-        categories = [categories]
+        categories = _split_time_category_values(categories)
     valid = set(TIME_CATEGORIES)
     normalized = [str(c).strip().lower() for c in categories if c and str(c).strip()]
     normalized = [c for c in normalized if c in valid]
-    if not normalized or "anytime" in normalized:
-        return ["anytime"]
-    return normalized
+    return _finalize_time_categories(normalized)
 
 
 @dataclass
@@ -183,6 +202,7 @@ class Chore:
             "assigned_to": self.assigned_to,
             "requires_approval": self.requires_approval,
             "time_categories": self.time_categories,
+            "time_category": ", ".join(self.time_categories) if self.time_categories else "anytime",
             "daily_limit": self.daily_limit,
             "completion_sound": self.completion_sound,
             "completion_percentage_per_month": self.completion_percentage_per_month,

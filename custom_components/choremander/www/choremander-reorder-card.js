@@ -513,10 +513,17 @@ class ChoremanderReorderCard extends LitElement {
   }
 
   _getChoreTimeCategories(chore) {
-    if (Array.isArray(chore?.time_categories) && chore.time_categories.length > 0) {
-      return chore.time_categories.map((c) => String(c).trim().toLowerCase());
+    if (!chore) return ["anytime"];
+
+    const rawCategories = chore.time_categories;
+    if (Array.isArray(rawCategories) && rawCategories.length > 0) {
+      return rawCategories.map((c) => String(c).trim().toLowerCase()).filter(Boolean);
     }
-    const legacy = String((chore && chore.time_category) || "").trim().toLowerCase();
+    if (typeof rawCategories === "string" && rawCategories.trim()) {
+      return rawCategories.split(",").map((c) => c.trim().toLowerCase()).filter(Boolean);
+    }
+
+    const legacy = String(chore.time_category || "").trim().toLowerCase();
     if (!legacy) return ["anytime"];
     if (legacy.includes(",")) {
       return legacy.split(",").map((c) => c.trim().toLowerCase()).filter(Boolean);

@@ -707,7 +707,7 @@ class ChoremanderChildCard extends LitElement {
         gap: 6px;
         border: none;
         border-radius: 999px;
-        padding: 8px 12px;
+        padding: 0.55em 0.85em;
         font-size: var(--time-category-filter-font-size, 0.9rem);
         font-weight: 650;
         cursor: pointer;
@@ -733,7 +733,7 @@ class ChoremanderChildCard extends LitElement {
       }
 
       .time-category-button ha-icon {
-        --mdc-icon-size: 18px;
+        --mdc-icon-size: 1.1em;
       }
 
       /* Time-category grouped sections (match reorder card concept, kid-friendly styling) */
@@ -756,24 +756,27 @@ class ChoremanderChildCard extends LitElement {
       }
 
       .time-category-header ha-icon {
-        --mdc-icon-size: 22px;
+        --mdc-icon-size: 1.25em;
         color: var(--primary-color, var(--fun-purple));
       }
 
       .time-category-header .count {
         margin-left: auto;
-        min-width: 34px;
-        height: 26px;
+        min-width: calc(2.2em + 6px);
+        min-height: calc(1.75em + 2px);
         display: inline-flex;
         align-items: center;
         justify-content: center;
         border-radius: 999px;
-        padding: 0 10px;
+        padding: 0.2em 0.75em;
         font-size: 0.85em;
+        line-height: 1;
         font-weight: 700;
         color: var(--child-card-header-text-color, var(--primary-text-color));
         background: rgba(255, 255, 255, 0.06);
         border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.08));
+        box-sizing: border-box;
+        flex-shrink: 0;
       }
 
       .time-category-chores {
@@ -2063,10 +2066,17 @@ class ChoremanderChildCard extends LitElement {
   }
 
   _getChoreTimeCategories(chore) {
-    if (Array.isArray(chore?.time_categories) && chore.time_categories.length > 0) {
-      return chore.time_categories.map((c) => String(c).trim().toLowerCase());
+    if (!chore) return ["anytime"];
+
+    const rawCategories = chore.time_categories;
+    if (Array.isArray(rawCategories) && rawCategories.length > 0) {
+      return rawCategories.map((c) => String(c).trim().toLowerCase()).filter(Boolean);
     }
-    const legacy = String((chore && chore.time_category) || "").trim().toLowerCase();
+    if (typeof rawCategories === "string" && rawCategories.trim()) {
+      return rawCategories.split(",").map((c) => c.trim().toLowerCase()).filter(Boolean);
+    }
+
+    const legacy = String(chore.time_category || "").trim().toLowerCase();
     if (!legacy) return ["anytime"];
     if (legacy.includes(",")) {
       return legacy.split(",").map((c) => c.trim().toLowerCase()).filter(Boolean);
@@ -2077,29 +2087,18 @@ class ChoremanderChildCard extends LitElement {
   _choreMatchesTimeCategory(chore, timeCategory) {
     if (timeCategory === "all") return true;
     const categories = this._getChoreTimeCategories(chore);
-    if (categories.includes("anytime")) return true;
     return categories.includes(timeCategory);
-  }
-
-  _getNormalizedTimeCategory(chore) {
-    const categories = this._getChoreTimeCategories(chore);
-    if (categories.includes("anytime")) return "anytime";
-    return categories[0] || "anytime";
   }
 
   _renderChoresByTimeCategory({ activeCategory, chores, child, todaysCompletions, sortDoneLast }) {
     const timeCategories = ["morning", "afternoon", "evening", "night", "anytime"];
 
-    // When filtering to a single category, keep legacy behavior:
-    // include chores in that category PLUS "anytime" chores.
     const categoriesToShow =
       activeCategory === "all"
         ? timeCategories
-        : activeCategory === "anytime"
-          ? ["anytime"]
-          : timeCategories.includes(activeCategory)
-            ? [activeCategory, "anytime"]
-            : ["anytime"];
+        : timeCategories.includes(activeCategory)
+          ? [activeCategory]
+          : [];
 
     const uniqueCategories = [];
     for (const c of categoriesToShow) {
@@ -2213,7 +2212,7 @@ class ChoremanderChildCard extends LitElement {
       evening: "mdi:weather-sunset-down",
       night: "mdi:weather-night",
       anytime: "mdi:clock-outline",
-      all: "mdi:clock-outline",
+      all: "mdi:view-grid-outline",
     };
     return icons[category] || icons.anytime;
   }

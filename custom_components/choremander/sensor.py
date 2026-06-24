@@ -400,7 +400,7 @@ class PendingApprovalsSensor(ChoremandorBaseSensor):
                     "chore_id": chore.id,
                     "points": chore.points,
                     "time_categories": chore.time_categories,
-                    "time_category": chore.time_categories[0] if chore.time_categories else "anytime",
+                    "time_category": ", ".join(chore.time_categories) if chore.time_categories else "anytime",
                     "completed_at": comp.completed_at.isoformat(),
                 })
 
