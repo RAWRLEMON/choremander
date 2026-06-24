@@ -160,11 +160,9 @@ class ChoremanderChildCard extends LitElement {
 
   _syncThemeVariables() {
     const computed = getComputedStyle(document.documentElement);
+    // Sync accent/structure colors only — keep kid-friendly light surfaces and dark header text.
     const themeVars = [
-      "primary-text-color",
-      "secondary-text-color",
       "card-background-color",
-      "secondary-background-color",
       "primary-color",
       "divider-color",
       "warning-color",
@@ -537,7 +535,12 @@ class ChoremanderChildCard extends LitElement {
     return css`
       :host {
         display: block;
-        color: var(--primary-text-color);
+        /* Kid-friendly light interior — stays bright even in HA dark mode */
+        --child-surface: #ffffff;
+        --child-surface-soft: #f3f4f6;
+        --child-header-text: #1f2937;
+        --child-header-muted: #4b5563;
+        --child-border-on-light: rgba(0, 0, 0, 0.08);
         /* Softer pastels (less neon / flatter look) */
         --fun-pink: #f4a7b9;
         --fun-purple: #c4b5fd;
@@ -553,17 +556,11 @@ class ChoremanderChildCard extends LitElement {
         --child-card-accent-width: 10px;
         --child-card-bg-color: var(--card-background-color);
         --child-card-font-family: var(--primary-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif);
-        --child-card-header-text-color: var(--primary-text-color);
-        --child-card-chore-text-color: var(--primary-text-color);
+        --child-card-header-text-color: var(--child-header-text);
+        --child-card-chore-text-color: var(--child-header-text);
         --chore-box-border-width: 1px;
-        /* Theme-adaptive surfaces: tint card background with text color for contrast in light + dark */
-        --cm-elevated-surface: color-mix(in srgb, var(--primary-text-color) 6%, var(--card-background-color));
-        --cm-elevated-surface-strong: color-mix(in srgb, var(--primary-text-color) 10%, var(--card-background-color));
-        --cm-chore-row-bg: color-mix(in srgb, var(--primary-text-color) 4%, var(--card-background-color));
-        --cm-subtle-surface: color-mix(in srgb, var(--primary-text-color) 5%, var(--card-background-color));
-        --cm-subtle-surface-strong: color-mix(in srgb, var(--primary-text-color) 8%, var(--card-background-color));
-        --cm-filter-inactive-bg: color-mix(in srgb, var(--primary-color) 18%, var(--card-background-color));
-        --chore-completed-default-bg: color-mix(in srgb, var(--success-color, #4caf50) 18%, var(--card-background-color));
+        --cm-filter-inactive-bg: color-mix(in srgb, var(--primary-color, #6b5bd6) 14%, var(--child-surface));
+        --chore-completed-default-bg: #e8f5e9;
       }
 
       ha-card {
@@ -620,8 +617,8 @@ class ChoremanderChildCard extends LitElement {
         width: calc(64px * var(--child-avatar-scale, 1));
         height: calc(64px * var(--child-avatar-scale, 1));
         border-radius: 50%;
-        background: var(--cm-elevated-surface);
-        border: 1px solid var(--divider-color);
+        background: var(--child-surface);
+        border: 1px solid var(--child-border-on-light);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -648,7 +645,7 @@ class ChoremanderChildCard extends LitElement {
       .child-name {
         font-size: var(--child-name-font-size, clamp(1.05rem, 4vw, 1.6rem));
         font-weight: 650;
-        color: var(--child-card-header-text-color, var(--primary-text-color));
+        color: var(--child-card-header-text-color, var(--child-header-text));
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -659,10 +656,10 @@ class ChoremanderChildCard extends LitElement {
         display: flex;
         flex-direction: column;
         align-items: center;
-        background: var(--cm-elevated-surface-strong);
+        background: var(--child-surface);
         padding: 10px 12px;
         border-radius: 16px;
-        border: 1px solid var(--divider-color);
+        border: 1px solid var(--child-border-on-light);
         box-shadow: 0 3px 10px rgba(0, 0, 0, 0.10);
         min-width: 0;
         max-width: 45%;
@@ -701,7 +698,7 @@ class ChoremanderChildCard extends LitElement {
       }
 
       .stars-value.my-stars {
-        color: var(--child-card-header-text-color, var(--primary-text-color));
+        color: var(--child-card-header-text-color, var(--child-header-text));
       }
 
       .stars-value.waiting-stars {
@@ -759,7 +756,7 @@ class ChoremanderChildCard extends LitElement {
       }
 
       .stars-label.my-stars {
-        color: var(--secondary-text-color, var(--child-card-header-text-color, var(--primary-text-color)));
+        color: var(--child-header-muted);
       }
 
       .stars-label.waiting-stars {
@@ -769,7 +766,7 @@ class ChoremanderChildCard extends LitElement {
       .stars-divider {
         width: 2px;
         height: calc(35px * var(--stars-count-scale, 1));
-        background: var(--divider-color);
+        background: var(--child-border-on-light);
         opacity: 0.7;
         margin: 0 4px;
         flex-shrink: 0;
@@ -812,7 +809,7 @@ class ChoremanderChildCard extends LitElement {
       .section-title {
         font-size: 1.25rem;
         font-weight: 650;
-        color: var(--primary-text-color);
+        color: var(--child-card-header-text-color, var(--child-header-text));
         display: flex;
         align-items: center;
         gap: 12px;
@@ -835,13 +832,13 @@ class ChoremanderChildCard extends LitElement {
         display: flex;
         align-items: center;
         gap: 6px;
-        border: 1px solid var(--divider-color);
+        border: 1px solid var(--child-border-on-light);
         border-radius: 999px;
         padding: 0.55em 0.85em;
         font-size: var(--time-category-filter-font-size, 0.9rem);
         font-weight: 650;
         cursor: pointer;
-        color: var(--child-card-header-text-color, var(--primary-text-color));
+        color: var(--child-card-header-text-color, var(--child-header-text));
         background: var(--cm-filter-inactive-bg);
         transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s ease, border-color 0.15s ease;
       }
@@ -882,12 +879,12 @@ class ChoremanderChildCard extends LitElement {
         gap: 10px;
         padding: 10px 12px;
         border-radius: 14px;
-        background: var(--cm-subtle-surface);
-        color: var(--child-card-header-text-color, var(--primary-text-color));
+        background: var(--child-surface-soft);
+        color: var(--child-card-header-text-color, var(--child-header-text));
         font-weight: 650;
         font-size: var(--time-category-header-font-size, 1rem);
         letter-spacing: 0.1px;
-        border: 1px solid var(--divider-color);
+        border: 1px solid var(--child-border-on-light);
       }
 
       .time-category-header ha-icon {
@@ -907,9 +904,9 @@ class ChoremanderChildCard extends LitElement {
         font-size: 0.85em;
         line-height: 1;
         font-weight: 700;
-        color: var(--child-card-header-text-color, var(--primary-text-color));
-        background: var(--cm-subtle-surface-strong);
-        border: 1px solid var(--divider-color);
+        color: var(--child-card-header-text-color, var(--child-header-text));
+        background: var(--child-surface);
+        border: 1px solid var(--child-border-on-light);
         box-sizing: border-box;
         flex-shrink: 0;
       }
@@ -923,7 +920,7 @@ class ChoremanderChildCard extends LitElement {
 
       /* Individual chore card - optimized for tablet touch, ENTIRE ROW IS CLICKABLE */
       .chore-card {
-        --chore-card-base-bg: var(--cm-chore-row-bg);
+        --chore-card-base-bg: var(--child-surface);
         background: var(--chore-card-base-bg);
         border-radius: 14px;
         padding: 12px 14px;
@@ -933,7 +930,7 @@ class ChoremanderChildCard extends LitElement {
         gap: 16px;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         border-style: solid;
-        border-color: var(--divider-color);
+        border-color: var(--child-border-on-light);
         border-width: var(--chore-box-border-width, 1px) var(--chore-box-border-width, 1px)
           var(--chore-box-border-width, 1px) 0;
         transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.18s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1028,8 +1025,8 @@ class ChoremanderChildCard extends LitElement {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        background: color-mix(in srgb, var(--primary-text-color) 12%, var(--chore-card-base-bg, var(--card-background-color)));
-        border: 1px solid var(--divider-color);
+        background: var(--child-surface);
+        border: 1px solid var(--child-border-on-light);
         box-shadow: 0 1px 5px rgba(0, 0, 0, 0.08);
       }
 
@@ -1041,19 +1038,19 @@ class ChoremanderChildCard extends LitElement {
       }
 
       .chores-container[data-chore-color]:not([data-chore-color="default"]) .chore-icon-chip {
-        background: color-mix(in srgb, var(--uniform-chore-color) 22%, var(--chore-card-base-bg, var(--card-background-color)));
-        border-color: color-mix(in srgb, var(--uniform-chore-color) 35%, var(--divider-color));
+        background: color-mix(in srgb, var(--uniform-chore-color) 22%, var(--child-surface));
+        border-color: color-mix(in srgb, var(--uniform-chore-color) 35%, var(--child-border-on-light));
       }
 
       .chore-icon-chip--white,
       .chores-container[data-chore-color]:not([data-chore-color="default"]) .chore-icon-chip--white {
-        background: color-mix(in srgb, var(--primary-text-color) 16%, var(--chore-card-base-bg, var(--card-background-color))) !important;
-        border-color: var(--divider-color) !important;
+        background: var(--child-surface) !important;
+        border-color: var(--child-border-on-light) !important;
       }
 
       .chore-icon-chip ha-icon {
         --mdc-icon-size: 22px;
-        color: var(--child-card-chore-text-color, var(--primary-text-color));
+        color: var(--child-card-chore-text-color, var(--child-header-text));
       }
 
       .chore-emoji {
@@ -1117,7 +1114,7 @@ class ChoremanderChildCard extends LitElement {
         height: calc(36px * var(--chore-checkbox-scale, 1));
         min-width: calc(36px * var(--chore-checkbox-scale, 1));
         border-radius: 999px;
-        border: 2px solid var(--child-card-chore-text-color, var(--primary-text-color));
+        border: 2px solid var(--child-card-chore-text-color, var(--child-header-text));
         background: transparent;
         display: flex;
         align-items: center;
@@ -1138,14 +1135,14 @@ class ChoremanderChildCard extends LitElement {
 
       /* Unchecked state - hover keeps same border as chore text (exact match) */
       .chore-card:not(.completed):hover .chore-checkbox {
-        border-color: var(--child-card-chore-text-color, var(--primary-text-color));
+        border-color: var(--child-card-chore-text-color, var(--child-header-text));
         background: transparent;
       }
 
       /* Checked: solid text-color fill with white checkmark */
       .chore-card.completed .chore-checkbox {
-        border-color: var(--child-card-chore-text-color, var(--primary-text-color));
-        background: var(--child-card-chore-text-color, var(--primary-text-color));
+        border-color: var(--child-card-chore-text-color, var(--child-header-text));
+        background: var(--child-card-chore-text-color, var(--child-header-text));
         box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
       }
 
@@ -1165,13 +1162,13 @@ class ChoremanderChildCard extends LitElement {
         font-size: var(--chore-name-font-size, 1.15rem);
         font-weight: 550;
         letter-spacing: -0.01em;
-        color: var(--child-card-chore-text-color, var(--primary-text-color));
+        color: var(--child-card-chore-text-color, var(--child-header-text));
         line-height: 1.2;
       }
 
       .chore-daily-limit {
         font-size: var(--chore-points-font-size, 0.88rem);
-        color: var(--child-card-chore-text-color, var(--secondary-text-color));
+        color: var(--child-card-chore-text-color, var(--child-header-muted));
         font-weight: 600;
         opacity: 0.82;
         letter-spacing: 0.01em;
@@ -1182,7 +1179,7 @@ class ChoremanderChildCard extends LitElement {
         align-items: center;
         gap: 8px;
         font-size: var(--chore-points-font-size, 1.05rem);
-        color: var(--child-card-chore-text-color, var(--secondary-text-color));
+        color: var(--child-card-chore-text-color, var(--child-header-muted));
         font-weight: 600;
       }
 
@@ -1209,20 +1206,20 @@ class ChoremanderChildCard extends LitElement {
       }
 
       .chore-card.completed .chore-icon-container {
-        background: color-mix(in srgb, var(--card-background-color) 80%, transparent);
+        background: var(--child-surface);
       }
 
       .chore-card.completed .chore-name {
-        color: var(--child-card-chore-text-color, var(--primary-text-color));
+        color: var(--child-card-chore-text-color, var(--child-header-text));
       }
 
       .chore-card.completed .chore-daily-limit {
-        color: var(--child-card-chore-text-color, var(--secondary-text-color));
+        color: var(--child-card-chore-text-color, var(--child-header-muted));
         opacity: 0.85;
       }
 
       .chore-card.completed .chore-points {
-        color: var(--child-card-chore-text-color, var(--secondary-text-color));
+        color: var(--child-card-chore-text-color, var(--child-header-muted));
         opacity: 0.85;
       }
 
@@ -1265,7 +1262,7 @@ class ChoremanderChildCard extends LitElement {
 
       .empty-state .submessage {
         font-size: 1.1rem;
-        color: var(--secondary-text-color);
+        color: var(--child-header-muted);
       }
 
       /* Celebration overlay */
@@ -1289,7 +1286,7 @@ class ChoremanderChildCard extends LitElement {
       }
 
       .celebration-content {
-        background: var(--card-background-color);
+        background: var(--child-surface);
         border-radius: 30px;
         padding: 40px 50px;
         text-align: center;
@@ -1329,7 +1326,7 @@ class ChoremanderChildCard extends LitElement {
 
       .celebration-message {
         font-size: 1.3rem;
-        color: var(--secondary-text-color);
+        color: var(--child-header-muted);
         margin-bottom: 16px;
       }
 
@@ -2995,7 +2992,7 @@ class ChoremanderChildCardEditor extends LitElement {
         border: 1px solid var(--divider-color);
         border-radius: 4px;
         background: var(--card-background-color);
-        color: var(--primary-text-color);
+        color: var(--child-header-text);
         font-size: 1em;
         box-sizing: border-box;
       }
@@ -3003,7 +3000,7 @@ class ChoremanderChildCardEditor extends LitElement {
       .form-group small {
         display: block;
         margin-top: 4px;
-        color: var(--secondary-text-color);
+        color: var(--child-header-muted);
         font-size: 0.85em;
       }
 
@@ -3030,7 +3027,7 @@ class ChoremanderChildCardEditor extends LitElement {
       .inline-button {
         border: 1px solid var(--divider-color);
         background: var(--card-background-color);
-        color: var(--primary-text-color);
+        color: var(--child-header-text);
         border-radius: 10px;
         padding: 8px 10px;
         cursor: pointer;
