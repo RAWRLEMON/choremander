@@ -53,7 +53,8 @@ class ChoremanderReorderCard extends LitElement {
     return css`
       :host {
         display: block;
-        --cm-surface-border: 1px solid rgba(255, 255, 255, 0.1);
+        color-scheme: light dark;
+        --cm-surface-border: 1px solid var(--divider-color);
         --cm-surface-radius: 24px;
         --cm-surface-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
         --cm-warning-color: var(--warning-color, #ff9800);
@@ -80,7 +81,7 @@ class ChoremanderReorderCard extends LitElement {
         justify-content: space-between;
         gap: 12px;
         padding: 16px 18px;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        border-bottom: 1px solid var(--divider-color);
         margin-bottom: 16px;
       }
 
@@ -143,7 +144,7 @@ class ChoremanderReorderCard extends LitElement {
 
       .save-button {
         background: var(--primary-color);
-        color: var(--text-primary-color);
+        color: var(--text-primary-color, #fff);
         border: none;
         border-radius: 10px;
         height: 40px;
@@ -212,7 +213,7 @@ class ChoremanderReorderCard extends LitElement {
         margin-bottom: 12px;
         font-weight: 650;
         color: var(--primary-text-color);
-        border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.08));
+        border: 1px solid var(--divider-color);
       }
 
       .time-category-header ha-icon {
@@ -261,7 +262,7 @@ class ChoremanderReorderCard extends LitElement {
         align-items: center;
         justify-content: center;
         background: var(--primary-color);
-        color: var(--text-primary-color);
+        color: var(--text-primary-color, #fff);
         border-radius: 50%;
         font-size: 0.85em;
         font-weight: 600;

@@ -44,11 +44,12 @@ class ChoremanderRewardsCard extends LitElement {
     return css`
       :host {
         display: block;
+        color-scheme: light dark;
         --text-primary: var(--primary-text-color, #212121);
         --text-secondary: var(--secondary-text-color, #757575);
-        --card-bg: var(--card-background-color, #fff);
-        --divider: var(--divider-color, #e0e0e0);
-        --cm-surface-border: 1px solid rgba(255, 255, 255, 0.1);
+        --card-bg: var(--card-background-color);
+        --divider: var(--divider-color);
+        --cm-surface-border: 1px solid var(--divider-color);
         --cm-surface-radius: 24px;
         --cm-surface-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
         --cm-primary-color: var(--primary-color, #5c6bc0);
@@ -65,6 +66,8 @@ class ChoremanderRewardsCard extends LitElement {
           var(--cm-warning-color) 0%,
           color-mix(in srgb, var(--cm-warning-color) 78%, black) 100%
         );
+        --cm-subtle-surface: color-mix(in srgb, var(--primary-color) 8%, transparent);
+        --cm-inset-surface: color-mix(in srgb, var(--primary-color) 10%, transparent);
       }
 
       ha-card {
@@ -82,7 +85,7 @@ class ChoremanderRewardsCard extends LitElement {
         justify-content: space-between;
         padding: 16px 18px;
         gap: 12px;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        border-bottom: 1px solid var(--divider-color);
       }
 
       .header-content {
@@ -153,7 +156,7 @@ class ChoremanderRewardsCard extends LitElement {
 
       .cost-badge ha-icon {
         --mdc-icon-size: 24px;
-        color: white;
+        color: var(--text-primary-color, #fff);
         filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
         margin-bottom: 4px;
       }
@@ -161,7 +164,7 @@ class ChoremanderRewardsCard extends LitElement {
       .cost-value {
         font-size: 1.4rem;
         font-weight: 700;
-        color: white;
+        color: var(--text-primary-color, #fff);
         text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
         line-height: 1;
       }
@@ -169,7 +172,7 @@ class ChoremanderRewardsCard extends LitElement {
       .cost-label {
         font-size: 0.65rem;
         font-weight: 600;
-        color: rgba(255, 255, 255, 0.9);
+        color: color-mix(in srgb, var(--text-primary-color, #fff) 90%, transparent);
         text-transform: uppercase;
         letter-spacing: 0.5px;
         margin-top: 2px;
@@ -207,7 +210,7 @@ class ChoremanderRewardsCard extends LitElement {
 
       .claim-button {
         background: var(--cm-primary-gradient);
-        color: #fff;
+        color: var(--text-primary-color, #fff);
         border: none;
         border-radius: 999px;
         padding: 6px 14px;
@@ -332,12 +335,12 @@ class ChoremanderRewardsCard extends LitElement {
       .progress-bar {
         flex: 1;
         height: 14px;
-        background: rgba(0, 0, 0, 0.08);
+        background: var(--cm-subtle-surface);
         border-radius: 7px;
         overflow: hidden;
         position: relative;
         border: 2px solid color-mix(in srgb, var(--cm-primary-color) 40%, transparent);
-        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: inset 0 1px 3px var(--cm-inset-surface);
       }
 
       .progress-fill {
@@ -363,7 +366,7 @@ class ChoremanderRewardsCard extends LitElement {
         background: linear-gradient(
           90deg,
           transparent,
-          rgba(255, 255, 255, 0.4),
+          color-mix(in srgb, var(--text-primary-color, #fff) 40%, transparent),
           transparent
         );
         animation: shimmer 2s infinite;
@@ -389,7 +392,7 @@ class ChoremanderRewardsCard extends LitElement {
         background: linear-gradient(
           135deg,
           color-mix(in srgb, var(--cm-warning-color) 10%, transparent) 0%,
-          rgba(255, 255, 255, 0) 100%
+          transparent 100%
         );
         position: relative;
         overflow: hidden;
@@ -432,7 +435,7 @@ class ChoremanderRewardsCard extends LitElement {
         border-radius: 12px;
         font-size: 0.7rem;
         font-weight: 700;
-        color: white;
+        color: var(--text-primary-color, #fff);
         text-transform: uppercase;
         letter-spacing: 0.5px;
         margin-bottom: 4px;
@@ -447,13 +450,13 @@ class ChoremanderRewardsCard extends LitElement {
       .jackpot-progress-bar {
         flex: 1;
         height: 18px;
-        background: rgba(0, 0, 0, 0.08);
+        background: var(--cm-subtle-surface);
         border-radius: 9px;
         overflow: hidden;
         position: relative;
         display: flex;
         border: 2px solid color-mix(in srgb, var(--cm-warning-color) 48%, transparent);
-        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        box-shadow: inset 0 1px 3px var(--cm-inset-surface);
       }
 
       .jackpot-segment {
@@ -473,7 +476,7 @@ class ChoremanderRewardsCard extends LitElement {
         background: linear-gradient(
           90deg,
           transparent,
-          rgba(255, 255, 255, 0.4),
+          color-mix(in srgb, var(--text-primary-color, #fff) 40%, transparent),
           transparent
         );
         animation: jackpot-segment-shimmer 40s infinite;
@@ -530,7 +533,7 @@ class ChoremanderRewardsCard extends LitElement {
         align-items: center;
         gap: 3px;
         padding: 2px 8px;
-        background: rgba(0, 0, 0, 0.05);
+        background: color-mix(in srgb, var(--primary-color) 6%, transparent);
         border-radius: 10px;
         font-weight: 500;
       }

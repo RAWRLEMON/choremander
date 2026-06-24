@@ -39,9 +39,11 @@ class ChoremanderApprovalsCard extends LitElement {
     return css`
       :host {
         display: block;
-        --cm-surface-border: 1px solid rgba(255, 255, 255, 0.1);
+        color-scheme: light dark;
+        --cm-surface-border: 1px solid var(--divider-color);
         --cm-surface-radius: 24px;
         --cm-surface-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+        --cm-subtle-surface: color-mix(in srgb, var(--primary-color) 8%, transparent);
         --cm-success-gradient: linear-gradient(
           135deg,
           var(--success-color, #4caf50) 0%,
@@ -69,7 +71,7 @@ class ChoremanderApprovalsCard extends LitElement {
         align-items: center;
         justify-content: space-between;
         padding: 16px 18px;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        border-bottom: 1px solid var(--divider-color);
         gap: 10px;
       }
 
@@ -104,8 +106,8 @@ class ChoremanderApprovalsCard extends LitElement {
         margin-bottom: 12px;
         padding: 10px 12px;
         border-radius: 14px;
-        background: rgba(255, 255, 255, 0.04);
-        border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.08));
+        background: var(--cm-subtle-surface);
+        border: 1px solid var(--divider-color);
       }
 
       .time-group {
@@ -232,12 +234,12 @@ class ChoremanderApprovalsCard extends LitElement {
 
       .action-button.approve {
         background: var(--cm-success-gradient);
-        color: white;
+        color: var(--text-primary-color, #fff);
       }
 
       .action-button.reject {
         background: var(--cm-danger-gradient);
-        color: white;
+        color: var(--text-primary-color, #fff);
       }
 
       .action-button ha-icon {

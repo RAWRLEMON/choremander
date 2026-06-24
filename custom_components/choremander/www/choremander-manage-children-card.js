@@ -41,7 +41,8 @@ class ChoremanderManageChildrenCard extends LitElement {
     return css`
       :host {
         display: block;
-        --cm-surface-border: 1px solid rgba(255, 255, 255, 0.1);
+        color-scheme: light dark;
+        --cm-surface-border: 1px solid var(--divider-color);
         --cm-surface-radius: 24px;
         --cm-surface-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
       }
@@ -59,7 +60,7 @@ class ChoremanderManageChildrenCard extends LitElement {
         align-items: center;
         justify-content: space-between;
         padding: 16px 18px;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        border-bottom: 1px solid var(--divider-color);
       }
 
       .header-content {
@@ -106,7 +107,7 @@ class ChoremanderManageChildrenCard extends LitElement {
         height: 40px;
         padding: 0 14px;
         background: var(--primary-color);
-        color: var(--text-primary-color);
+        color: var(--text-primary-color, #fff);
         font-weight: 600;
         cursor: pointer;
       }
@@ -267,7 +268,7 @@ class ChoremanderManageChildrenCard extends LitElement {
 
       .danger-button {
         background: var(--error-color);
-        color: #fff;
+        color: var(--text-primary-color, #fff);
       }
 
       .notice {
@@ -278,7 +279,7 @@ class ChoremanderManageChildrenCard extends LitElement {
         z-index: 10000;
         padding: 10px 14px;
         border-radius: 8px;
-        color: #fff;
+        color: var(--text-primary-color, #fff);
         font-weight: 600;
         background: var(--primary-color);
       }
