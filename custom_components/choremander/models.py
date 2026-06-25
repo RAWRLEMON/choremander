@@ -262,6 +262,23 @@ class Reward:
         }
 
 
+def completion_matches_time_slot(
+    completion_time_category: str | None,
+    chore: Chore,
+    slot: str | None,
+) -> bool:
+    """Return whether a completion counts toward a specific time-of-day slot."""
+    if slot is None:
+        return True
+    if completion_time_category:
+        return completion_time_category == slot
+    categories = chore.time_categories or ["anytime"]
+    if len(categories) == 1:
+        return categories[0] == slot
+    # Legacy completions without a slot on multi-category chores count for all slots.
+    return True
+
+
 @dataclass
 class ChoreCompletion:
     """Represents a chore completion record."""
@@ -272,6 +289,7 @@ class ChoreCompletion:
     approved: bool = False
     approved_at: datetime | None = None
     points_awarded: int = 0
+    time_category: str | None = None
     id: str = field(default_factory=generate_id)
 
     @classmethod
@@ -279,6 +297,11 @@ class ChoreCompletion:
         """Create a ChoreCompletion from a dictionary."""
         completed_at = parse_datetime(data.get("completed_at"))
         approved_at = parse_datetime(data.get("approved_at"))
+        time_category = data.get("time_category")
+        if isinstance(time_category, str):
+            time_category = time_category.strip().lower() or None
+        else:
+            time_category = None
 
         return cls(
             chore_id=data.get("chore_id", ""),
@@ -287,12 +310,13 @@ class ChoreCompletion:
             approved=data.get("approved", False),
             approved_at=approved_at,
             points_awarded=data.get("points_awarded", 0),
+            time_category=time_category,
             id=data.get("id", generate_id()),
         )
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
-        return {
+        result = {
             "chore_id": self.chore_id,
             "child_id": self.child_id,
             "completed_at": format_datetime(self.completed_at),
@@ -301,6 +325,9 @@ class ChoreCompletion:
             "points_awarded": self.points_awarded,
             "id": self.id,
         }
+        if self.time_category:
+            result["time_category"] = self.time_category
+        return result
 
 
 @dataclass

@@ -137,13 +137,16 @@ class ChoremandorOverallStatsSensor(ChoremandorBaseSensor):
                 comp_dt = dt_util.as_local(comp_dt)
             comp_date = comp_dt.date() if hasattr(comp_dt, 'date') else comp_dt
             if comp_date == today:
-                todays_completions.append({
+                completion_entry = {
                     "completion_id": comp.id,
                     "chore_id": comp.chore_id,
                     "child_id": comp.child_id,
                     "approved": comp.approved,
                     "completed_at": comp.completed_at.isoformat() if hasattr(comp.completed_at, 'isoformat') else str(comp.completed_at),
-                })
+                }
+                if comp.time_category:
+                    completion_entry["time_category"] = comp.time_category
+                todays_completions.append(completion_entry)
 
         # Calculate pending points per child
         pending_points_by_child = {}
@@ -391,7 +394,7 @@ class PendingApprovalsSensor(ChoremandorBaseSensor):
             child = self.coordinator.get_child(comp.child_id)
             chore = self.coordinator.get_chore(comp.chore_id)
             if child and chore:
-                completion_details.append({
+                completion_detail = {
                     "completion_id": comp.id,
                     "type": "chore",
                     "child_name": child.name,
@@ -402,7 +405,10 @@ class PendingApprovalsSensor(ChoremandorBaseSensor):
                     "time_categories": chore.time_categories,
                     "time_category": ", ".join(chore.time_categories) if chore.time_categories else "anytime",
                     "completed_at": comp.completed_at.isoformat(),
-                })
+                }
+                if comp.time_category:
+                    completion_detail["completion_time_category"] = comp.time_category
+                completion_details.append(completion_detail)
 
         reward_details = []
         for claim in pending_rewards:

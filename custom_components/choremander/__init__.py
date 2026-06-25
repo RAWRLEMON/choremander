@@ -139,7 +139,8 @@ async def _async_register_services(hass: HomeAssistant) -> None:
             return
         chore_id = call.data[ATTR_CHORE_ID]
         child_id = call.data[ATTR_CHILD_ID]
-        await coordinator.async_complete_chore(chore_id, child_id)
+        time_category = call.data.get(ATTR_TIME_CATEGORY)
+        await coordinator.async_complete_chore(chore_id, child_id, time_category)
 
     async def handle_approve_chore(call: ServiceCall) -> None:
         """Handle the approve_chore service call."""
@@ -375,6 +376,7 @@ async def _async_register_services(hass: HomeAssistant) -> None:
             {
                 vol.Required(ATTR_CHORE_ID): cv.string,
                 vol.Required(ATTR_CHILD_ID): cv.string,
+                vol.Optional(ATTR_TIME_CATEGORY): cv.string,
             }
         ),
     )

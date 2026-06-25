@@ -10,7 +10,15 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
-from .models import Child, Chore, ChoreCompletion, Reward, RewardClaim, normalize_time_categories
+from .models import (
+    Child,
+    Chore,
+    ChoreCompletion,
+    Reward,
+    RewardClaim,
+    completion_matches_time_slot,
+    normalize_time_categories,
+)
 from .storage import ChoremanderStorage
 
 _LOGGER = logging.getLogger(__name__)
@@ -388,7 +396,12 @@ class ChoremanderCoordinator(DataUpdateCoordinator):
         return self.storage.get_reward(reward_id)
 
     # Chore completion operations
-    async def async_complete_chore(self, chore_id: str, child_id: str) -> ChoreCompletion:
+    async def async_complete_chore(
+        self,
+        chore_id: str,
+        child_id: str,
+        time_category: str | None = None,
+    ) -> ChoreCompletion:
         """Mark a chore as completed by a child."""
         chore = self.get_chore(chore_id)
         if not chore:
@@ -398,26 +411,42 @@ class ChoremanderCoordinator(DataUpdateCoordinator):
         if not child:
             raise ValueError(f"Child {child_id} not found")
 
-        # Check daily limit - count today's completions for this chore by this child
-        # Both pending (unapproved) and approved completions count toward the limit
+        if isinstance(time_category, str):
+            time_category = time_category.strip().lower() or None
+        else:
+            time_category = None
+
+        # Check daily limit - count today's completions for this chore by this child.
+        # For multi-category chores with a time slot, each slot has its own daily limit.
+        # Both pending (unapproved) and approved completions count toward the limit.
         now = dt_util.now()
         today = now.date()
         all_completions = self.storage.get_completions()
         todays_completions_count = 0
+        slot_for_limit = time_category
+        chore_categories = chore.time_categories or ["anytime"]
+        if len(chore_categories) <= 1:
+            slot_for_limit = None
+
         for comp in all_completions:
-            if comp.chore_id == chore_id and comp.child_id == child_id:
-                # Convert to local timezone for date comparison
-                comp_dt = comp.completed_at
-                if hasattr(comp_dt, 'astimezone'):
-                    comp_dt = dt_util.as_local(comp_dt)
-                comp_date = comp_dt.date() if hasattr(comp_dt, 'date') else comp_dt
-                if comp_date == today:
-                    todays_completions_count += 1
+            if comp.chore_id != chore_id or comp.child_id != child_id:
+                continue
+            # Convert to local timezone for date comparison
+            comp_dt = comp.completed_at
+            if hasattr(comp_dt, 'astimezone'):
+                comp_dt = dt_util.as_local(comp_dt)
+            comp_date = comp_dt.date() if hasattr(comp_dt, 'date') else comp_dt
+            if comp_date != today:
+                continue
+            if not completion_matches_time_slot(comp.time_category, chore, slot_for_limit):
+                continue
+            todays_completions_count += 1
 
         daily_limit = getattr(chore, 'daily_limit', 1)
         if todays_completions_count >= daily_limit:
+            slot_label = f" ({time_category})" if slot_for_limit else ""
             raise ValueError(
-                f"Daily limit reached for chore '{chore.name}'. "
+                f"Daily limit reached for chore '{chore.name}'{slot_label}. "
                 f"Already completed {todays_completions_count} time(s) today (limit: {daily_limit})"
             )
 
@@ -427,6 +456,7 @@ class ChoremanderCoordinator(DataUpdateCoordinator):
             completed_at=now,
             approved=not chore.requires_approval,
             points_awarded=chore.points if not chore.requires_approval else 0,
+            time_category=time_category,
         )
 
         # If no approval required, award points immediately

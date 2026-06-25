@@ -40,6 +40,7 @@ class ChoremanderChildCard extends LitElement {
       config: { type: Object },
       _loading: { type: Object },
       _celebrating: { type: String },
+      _celebratingSlot: { type: String },
       _confetti: { type: Array },
       _optimisticCompletions: { type: Object },
       _activeTimeCategory: { type: String },
@@ -50,6 +51,7 @@ class ChoremanderChildCard extends LitElement {
     super();
     this._loading = {};
     this._celebrating = null;
+    this._celebratingSlot = null;
     this._confetti = [];
     // Optimistic completions: track chores that were just completed
     // These are used to immediately hide the DONE button before the server confirms
@@ -1791,17 +1793,17 @@ class ChoremanderChildCard extends LitElement {
     const todaysCompletions = this._filterCompletionsForToday(allCompletions);
 
     // Sort chores so completed ones appear at the bottom of the list (within any list/section)
-    const sortDoneLast = (chores) =>
+    const sortDoneLast = (chores, timeCategory) =>
       [...chores].sort((a, b) => {
-        const aDone = this._isChoreCompletedForToday(a, child, todaysCompletions);
-        const bDone = this._isChoreCompletedForToday(b, child, todaysCompletions);
+        const aDone = this._isChoreCompletedForToday(a, child, todaysCompletions, timeCategory);
+        const bDone = this._isChoreCompletedForToday(b, child, todaysCompletions, timeCategory);
         if (aDone !== bDone) {
           return aDone ? 1 : -1;
         }
         return 0;
       });
 
-    const childChoresSorted = sortDoneLast(childChores);
+    const childChoresSorted = sortDoneLast(childChores, activeCategory === "all" ? null : activeCategory);
 
     // Log the filtering result
     console.debug(
@@ -2222,6 +2224,38 @@ class ChoremanderChildCard extends LitElement {
     return categories.includes(timeCategory);
   }
 
+  _completionMatchesTimeSlot(comp, chore, timeCategory) {
+    if (!timeCategory || timeCategory === "all") {
+      return true;
+    }
+    const completionCategory = comp && comp.time_category
+      ? String(comp.time_category).trim().toLowerCase()
+      : null;
+    if (completionCategory) {
+      return completionCategory === timeCategory;
+    }
+    const categories = this._getChoreTimeCategories(chore);
+    if (categories.length === 1) {
+      return categories[0] === timeCategory;
+    }
+    // Legacy completions without a slot on multi-category chores count for all slots.
+    return true;
+  }
+
+  _getCompletionSlotKey(chore, child, timeCategory) {
+    const slot = timeCategory && timeCategory !== "all" ? timeCategory : "default";
+    return `${chore.id}_${child.id}_${slot}`;
+  }
+
+  _filterCompletionsForChoreSlot(completions, chore, child, timeCategory) {
+    return completions.filter(
+      (comp) =>
+        comp.chore_id === chore.id &&
+        comp.child_id === child.id &&
+        this._completionMatchesTimeSlot(comp, chore, timeCategory)
+    );
+  }
+
   _renderChoresByTimeCategory({ activeCategory, chores, child, todaysCompletions, sortDoneLast }) {
     const timeCategories = ["morning", "afternoon", "evening", "night", "anytime"];
 
@@ -2247,7 +2281,7 @@ class ChoremanderChildCard extends LitElement {
           return "";
         }
 
-        const sorted = sortDoneLast(categoryChores);
+        const sorted = sortDoneLast(categoryChores, category);
 
         return html`
           <div class="time-category-section">
@@ -2258,7 +2292,7 @@ class ChoremanderChildCard extends LitElement {
             </div>
             <div class="time-category-chores">
               ${sorted.map((chore, index) =>
-                this._renderChoreCard(chore, child, todaysCompletions, index)
+                this._renderChoreCard(chore, child, todaysCompletions, index, category)
               )}
             </div>
           </div>
@@ -2539,20 +2573,24 @@ class ChoremanderChildCard extends LitElement {
     return typeof icon === "string" && icon.startsWith("mdi:");
   }
 
-  _renderChoreCard(chore, child, todaysCompletions = [], choreIndex = 0) {
-    const isLoading = this._loading[chore.id];
-    const isCelebrating = this._celebrating === chore.id;
+  _renderChoreCard(chore, child, todaysCompletions = [], choreIndex = 0, timeCategory = null) {
+    const slotKey = this._getCompletionSlotKey(chore, child, timeCategory);
+    const isLoading = this._loading[slotKey];
+    const isCelebrating = this._celebratingSlot === slotKey;
 
-    // Check how many times this chore was completed today by this child
+    // Check how many times this chore was completed today by this child for this time slot
     // Both pending (awaiting approval) AND approved completions count toward the daily limit
-    const childCompletionsToday = todaysCompletions.filter(
-      (comp) => comp.chore_id === chore.id && comp.child_id === child.id
+    const childCompletionsToday = this._filterCompletionsForChoreSlot(
+      todaysCompletions,
+      chore,
+      child,
+      timeCategory
     );
     let completionsToday = childCompletionsToday.length;
     const dailyLimit = chore.daily_limit || 1;
 
     // Check for optimistic completions (chores just completed but not yet confirmed by HA)
-    const optimisticKey = `${chore.id}_${child.id}`;
+    const optimisticKey = slotKey;
     const optimisticData = this._optimisticCompletions && this._optimisticCompletions[optimisticKey];
     const hasOptimisticCompletion = !!optimisticData;
 
@@ -2616,9 +2654,9 @@ class ChoremanderChildCard extends LitElement {
     const handleRowClick = () => {
       if (isLoading) return;
       if (isCompletedForToday) {
-        this._handleUndo(chore, child, childCompletionsToday);
+        this._handleUndo(chore, child, childCompletionsToday, timeCategory);
       } else {
-        this._handleComplete(chore, child);
+        this._handleComplete(chore, child, timeCategory);
       }
     };
 
@@ -2675,14 +2713,17 @@ class ChoremanderChildCard extends LitElement {
     `;
   }
 
-  _isChoreCompletedForToday(chore, child, todaysCompletions = []) {
-    const childCompletionsToday = todaysCompletions.filter(
-      (comp) => comp.chore_id === chore.id && comp.child_id === child.id
+  _isChoreCompletedForToday(chore, child, todaysCompletions = [], timeCategory = null) {
+    const childCompletionsToday = this._filterCompletionsForChoreSlot(
+      todaysCompletions,
+      chore,
+      child,
+      timeCategory
     );
     let completionsToday = childCompletionsToday.length;
     const dailyLimit = chore.daily_limit || 1;
 
-    const optimisticKey = `${chore.id}_${child.id}`;
+    const optimisticKey = this._getCompletionSlotKey(chore, child, timeCategory);
     const optimisticData = this._optimisticCompletions && this._optimisticCompletions[optimisticKey];
     if (optimisticData) {
       const actualTimestamps = childCompletionsToday.map(comp =>
@@ -2754,12 +2795,12 @@ class ChoremanderChildCard extends LitElement {
     `;
   }
 
-  async _handleComplete(chore, child) {
-    const key = `${chore.id}_${child.id}`;
+  async _handleComplete(chore, child, timeCategory = null) {
+    const key = this._getCompletionSlotKey(chore, child, timeCategory);
     const dailyLimit = chore.daily_limit || 1;
 
-    // Check if already loading for this chore (prevent double-clicks during loading)
-    if (this._loading[chore.id]) {
+    // Check if already loading for this chore slot (prevent double-clicks during loading)
+    if (this._loading[key]) {
       console.debug(`[Choremander] Chore "${chore.name}" is already loading, ignoring click`);
       return;
     }
@@ -2768,8 +2809,11 @@ class ChoremanderChildCard extends LitElement {
     const entity = this.hass.states[this.config.entity];
     const allCompletions = (entity && entity.attributes && entity.attributes.todays_completions) || [];
     const todaysCompletions = this._filterCompletionsForToday(allCompletions);
-    const actualCompletionsToday = todaysCompletions.filter(
-      (comp) => comp.chore_id === chore.id && comp.child_id === child.id
+    const actualCompletionsToday = this._filterCompletionsForChoreSlot(
+      todaysCompletions,
+      chore,
+      child,
+      timeCategory
     ).length;
 
     // Count existing optimistic completions for this chore/child
@@ -2803,16 +2847,21 @@ class ChoremanderChildCard extends LitElement {
       },
     };
 
-    this._loading = { ...this._loading, [chore.id]: true };
+    this._loading = { ...this._loading, [key]: true };
     this.requestUpdate();
 
     try {
-      await this.hass.callService("choremander", "complete_chore", {
+      const serviceData = {
         chore_id: chore.id,
         child_id: child.id,
-      });
+      };
+      if (timeCategory && timeCategory !== "all") {
+        serviceData.time_category = timeCategory;
+      }
+      await this.hass.callService("choremander", "complete_chore", serviceData);
 
       // Trigger celebration!
+      this._celebratingSlot = key;
       this._celebrating = chore.id;
       this._spawnConfetti();
 
@@ -2866,14 +2915,16 @@ class ChoremanderChildCard extends LitElement {
         });
       }
     } finally {
-      this._loading = { ...this._loading, [chore.id]: false };
+      this._loading = { ...this._loading, [key]: false };
       this.requestUpdate();
     }
   }
 
-  async _handleUndo(chore, child, childCompletionsToday) {
-    // Check if already loading for this chore (prevent double-clicks during loading)
-    if (this._loading[chore.id]) {
+  async _handleUndo(chore, child, childCompletionsToday, timeCategory = null) {
+    const key = this._getCompletionSlotKey(chore, child, timeCategory);
+
+    // Check if already loading for this chore slot (prevent double-clicks during loading)
+    if (this._loading[key]) {
       console.debug(`[Choremander] Chore "${chore.name}" is already loading, ignoring undo click`);
       return;
     }
@@ -2897,7 +2948,7 @@ class ChoremanderChildCard extends LitElement {
 
     console.debug(`[Choremander] Undoing completion "${completionId}" for chore "${chore.name}"`);
 
-    this._loading = { ...this._loading, [chore.id]: true };
+    this._loading = { ...this._loading, [key]: true };
     this.requestUpdate();
 
     try {
@@ -2912,8 +2963,7 @@ class ChoremanderChildCard extends LitElement {
       const undoSoundToPlay = this.config.undo_sound || 'undo';
       this._playSound(undoSoundToPlay);
 
-      // Clear any optimistic completion data for this chore/child
-      const key = `${chore.id}_${child.id}`;
+      // Clear any optimistic completion data for this chore/child slot
       const newOptimistic = { ...this._optimisticCompletions };
       delete newOptimistic[key];
       this._optimisticCompletions = newOptimistic;
@@ -2930,7 +2980,7 @@ class ChoremanderChildCard extends LitElement {
         });
       }
     } finally {
-      this._loading = { ...this._loading, [chore.id]: false };
+      this._loading = { ...this._loading, [key]: false };
       this.requestUpdate();
     }
   }
@@ -2956,6 +3006,7 @@ class ChoremanderChildCard extends LitElement {
 
   _closeCelebration() {
     this._celebrating = null;
+    this._celebratingSlot = null;
     this.requestUpdate();
   }
 }

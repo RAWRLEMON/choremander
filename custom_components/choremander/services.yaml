@@ -14,6 +14,18 @@ complete_chore:
       required: true
       selector:
         text:
+    time_category:
+      name: Time Category
+      description: Morning, afternoon, evening, night, or anytime slot being completed (required for chores in multiple time slots)
+      required: false
+      selector:
+        select:
+          options:
+            - morning
+            - afternoon
+            - evening
+            - night
+            - anytime
 
 approve_chore:
   name: Approve Chore
