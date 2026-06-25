@@ -44,6 +44,7 @@ class ChoremanderChildCard extends LitElement {
       _confetti: { type: Array },
       _optimisticCompletions: { type: Object },
       _activeTimeCategory: { type: String },
+      _activeDate: { type: String },
     };
   }
 
@@ -61,6 +62,8 @@ class ChoremanderChildCard extends LitElement {
     // Active time category for in-card filtering (defaults to config)
     this._activeTimeCategory = null;
     this._configTimeCategory = null;
+    // Active date for viewing chores (YYYY-MM-DD in HA timezone; null = today)
+    this._activeDate = null;
     this._themeContextKey = null;
   }
 
@@ -830,6 +833,72 @@ class ChoremanderChildCard extends LitElement {
         margin: 8px 0 4px;
       }
 
+      .date-navigation {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin: 4px 0 10px;
+        flex-wrap: wrap;
+      }
+
+      .date-nav-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--child-border-on-light);
+        border-radius: 999px;
+        width: 2.4em;
+        height: 2.4em;
+        padding: 0;
+        font-size: var(--date-nav-font-size, 1rem);
+        cursor: pointer;
+        color: var(--child-card-header-text-color, var(--child-header-text));
+        background: var(--cm-filter-inactive-bg);
+        transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s ease, border-color 0.15s ease;
+      }
+
+      .date-nav-button:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+      }
+
+      .date-nav-button:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+
+      .date-nav-button ha-icon {
+        --mdc-icon-size: 1.2em;
+        color: var(--primary-color, var(--fun-purple));
+      }
+
+      .date-nav-label {
+        font-size: var(--date-nav-font-size, 1rem);
+        font-weight: 650;
+        color: var(--child-card-header-text-color, var(--child-header-text));
+        text-align: center;
+        min-width: 8rem;
+        line-height: 1.2;
+      }
+
+      .date-nav-today-button {
+        border: 1px solid var(--child-border-on-light);
+        border-radius: 999px;
+        padding: 0.45em 0.85em;
+        font-size: var(--date-nav-font-size, 0.85rem);
+        font-weight: 650;
+        cursor: pointer;
+        color: var(--child-card-header-text-color, var(--child-header-text));
+        background: var(--cm-filter-inactive-bg);
+        transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s ease;
+      }
+
+      .date-nav-today-button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+      }
+
       .time-category-button {
         display: flex;
         align-items: center;
@@ -1000,6 +1069,22 @@ class ChoremanderChildCard extends LitElement {
       .chore-card.loading {
         opacity: 0.6;
         pointer-events: none;
+      }
+
+      .chore-card.read-only {
+        cursor: default;
+      }
+
+      .chore-card.read-only:active {
+        transform: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+
+      @media (hover: hover) {
+        .chore-card.read-only:hover {
+          transform: none;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
       }
 
       .chore-card.celebrating {
@@ -1653,6 +1738,7 @@ class ChoremanderChildCard extends LitElement {
       stars_count_scale: "default",
       time_category_filter_font_size: "default",
       time_category_header_font_size: "default",
+      date_nav_font_size: "default",
       chore_box_font_size: "default",
       chore_emoji_box_scale: "default",
       chore_checkbox_scale: "default",
@@ -1701,6 +1787,7 @@ class ChoremanderChildCard extends LitElement {
       stars_count_scale: "default",
       time_category_filter_font_size: "default",
       time_category_header_font_size: "default",
+      date_nav_font_size: "default",
       chore_box_font_size: "default",
       chore_emoji_box_scale: "default",
       chore_checkbox_scale: "default",
@@ -1786,17 +1873,16 @@ class ChoremanderChildCard extends LitElement {
 
     const childChores = this._filterAndSortChores(allChores, child, activeCategory);
 
-    // Get today's completions for this child (with timezone-aware filtering as fallback)
-    // The backend provides todays_completions, but we also apply client-side filtering
-    // to ensure timezone correctness matches the HA frontend timezone
-    const allCompletions = entity.attributes.todays_completions || entity.attributes.completions || [];
-    const todaysCompletions = this._filterCompletionsForToday(allCompletions);
+    const activeDateKey = this._getActiveDateKey();
+    const isViewingToday = this._isViewingToday();
+    const allCompletions = this._getAllCompletions(entity);
+    const dateCompletions = this._filterCompletionsForDate(allCompletions, activeDateKey);
 
     // Sort chores so completed ones appear at the bottom of the list (within any list/section)
     const sortDoneLast = (chores, timeCategory) =>
       [...chores].sort((a, b) => {
-        const aDone = this._isChoreCompletedForToday(a, child, todaysCompletions, timeCategory);
-        const bDone = this._isChoreCompletedForToday(b, child, todaysCompletions, timeCategory);
+        const aDone = this._isChoreCompletedForToday(a, child, dateCompletions, timeCategory);
+        const bDone = this._isChoreCompletedForToday(b, child, dateCompletions, timeCategory);
         if (aDone !== bDone) {
           return aDone ? 1 : -1;
         }
@@ -1830,11 +1916,11 @@ class ChoremanderChildCard extends LitElement {
     const pendingPoints = child.pending_points || 0;
 
     // Debug logging to help troubleshoot daily limit issues
-    if (allCompletions.length > 0 || todaysCompletions.length > 0) {
+    if (allCompletions.length > 0 || dateCompletions.length > 0) {
       console.debug(
-        `[Choremander] Child "${child.name}" (${child.id}): ` +
-        `allCompletions = ${allCompletions.length}, todaysCompletions = ${todaysCompletions.length}`,
-        { allCompletions, todaysCompletions }
+        `[Choremander] Child "${child.name}" (${child.id}) on ${activeDateKey}: ` +
+        `allCompletions = ${allCompletions.length}, dateCompletions = ${dateCompletions.length}`,
+        { allCompletions, dateCompletions }
       );
     }
 
@@ -1877,15 +1963,17 @@ class ChoremanderChildCard extends LitElement {
 
         <div class="card-body">
           <div class="chores-container" data-chore-color="${this.config.chore_color || 'default'}">
+            ${this._renderDateNavigation(activeDateKey, isViewingToday)}
             ${this._renderTimeCategoryFilters(activeCategory, availableCategories)}
             ${childChores.length === 0
-              ? this._renderEmptyState()
+              ? this._renderEmptyState(isViewingToday)
               : this._renderChoresByTimeCategory({
                   activeCategory,
                   chores: childChoresSorted,
                   child,
-                  todaysCompletions,
+                  todaysCompletions: dateCompletions,
                   sortDoneLast,
+                  isViewingToday,
                 })}
           </div>
 
@@ -1939,6 +2027,9 @@ class ChoremanderChildCard extends LitElement {
 
     const headerSize = this._getTimeCategoryHeaderFontSizeCss();
     if (headerSize) parts.push(`--time-category-header-font-size: ${headerSize}`);
+
+    const dateNavSize = this._getDateNavFontSizeCss();
+    if (dateNavSize) parts.push(`--date-nav-font-size: ${dateNavSize}`);
 
     const choreBoxVars = this._getChoreBoxFontSizeVarsStyle();
     if (choreBoxVars) parts.push(choreBoxVars);
@@ -2199,6 +2290,21 @@ class ChoremanderChildCard extends LitElement {
     return map[size] || null;
   }
 
+  _getDateNavFontSizeCss() {
+    const size = this.config ? this.config.date_nav_font_size : undefined;
+    if (!size || size === "default") return null;
+
+    const numericPx = this._parseNumericFontSizePx(size);
+    if (numericPx != null) return `${numericPx}px`;
+
+    const map = {
+      small: "0.85rem",
+      medium: "1rem",
+      large: "1.15rem",
+    };
+    return map[size] || null;
+  }
+
   _getChoreTimeCategories(chore) {
     if (!chore) return ["anytime"];
 
@@ -2238,8 +2344,9 @@ class ChoremanderChildCard extends LitElement {
     if (categories.length === 1) {
       return categories[0] === timeCategory;
     }
-    // Legacy completions without a slot on multi-category chores count for all slots.
-    return true;
+    // Legacy completion without a slot on a multi-slot chore is ambiguous;
+    // do not count it toward any specific slot's daily limit or completion state.
+    return false;
   }
 
   _getCompletionSlotKey(chore, child, timeCategory) {
@@ -2256,7 +2363,7 @@ class ChoremanderChildCard extends LitElement {
     );
   }
 
-  _renderChoresByTimeCategory({ activeCategory, chores, child, todaysCompletions, sortDoneLast }) {
+  _renderChoresByTimeCategory({ activeCategory, chores, child, todaysCompletions, sortDoneLast, isViewingToday = true }) {
     const timeCategories = ["morning", "afternoon", "evening", "night", "anytime"];
 
     const categoriesToShow =
@@ -2292,7 +2399,7 @@ class ChoremanderChildCard extends LitElement {
             </div>
             <div class="time-category-chores">
               ${sorted.map((chore, index) =>
-                this._renderChoreCard(chore, child, todaysCompletions, index, category)
+                this._renderChoreCard(chore, child, todaysCompletions, index, category, isViewingToday)
               )}
             </div>
           </div>
@@ -2480,6 +2587,109 @@ class ChoremanderChildCard extends LitElement {
     this.requestUpdate();
   }
 
+  _getTodayDateKey() {
+    const now = new Date();
+    const parts = this._getDatePartsInTimezone(now);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${parts.year}-${pad(parts.month)}-${pad(parts.day)}`;
+  }
+
+  _getActiveDateKey() {
+    return this._activeDate || this._getTodayDateKey();
+  }
+
+  _isViewingToday() {
+    return this._getActiveDateKey() === this._getTodayDateKey();
+  }
+
+  _shiftDateKey(dateKey, deltaDays) {
+    const [y, m, d] = dateKey.split("-").map(Number);
+    const utc = new Date(Date.UTC(y, m - 1, d + deltaDays, 12, 0, 0));
+    const parts = this._getDatePartsInTimezone(utc);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${parts.year}-${pad(parts.month)}-${pad(parts.day)}`;
+  }
+
+  _formatDisplayDate(dateKey) {
+    const [y, m, d] = dateKey.split("-").map(Number);
+    const date = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+    return new Intl.DateTimeFormat(undefined, {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      timeZone: this._getTimezone(),
+    }).format(date);
+  }
+
+  _getAllCompletions(entity) {
+    if (!entity || !entity.attributes) return [];
+    return (
+      entity.attributes.all_completions ||
+      entity.attributes.completions ||
+      entity.attributes.todays_completions ||
+      []
+    );
+  }
+
+  _setActiveDate(dateKey) {
+    const todayKey = this._getTodayDateKey();
+    const nextDate = dateKey === todayKey ? null : dateKey;
+    if (this._activeDate === nextDate) {
+      return;
+    }
+    this._activeDate = nextDate;
+    this.requestUpdate();
+  }
+
+  _shiftActiveDate(deltaDays) {
+    const current = this._getActiveDateKey();
+    const next = this._shiftDateKey(current, deltaDays);
+    const todayKey = this._getTodayDateKey();
+    if (next > todayKey) {
+      return;
+    }
+    this._setActiveDate(next);
+  }
+
+  _goToToday() {
+    this._setActiveDate(this._getTodayDateKey());
+  }
+
+  _renderDateNavigation(activeDateKey, isViewingToday) {
+    const displayDate = this._formatDisplayDate(activeDateKey);
+    return html`
+      <div class="date-navigation" role="group" aria-label="Date">
+        <button
+          class="date-nav-button"
+          @click="${() => this._shiftActiveDate(-1)}"
+          title="Previous day"
+          aria-label="Previous day"
+        >
+          <ha-icon icon="mdi:chevron-left"></ha-icon>
+        </button>
+        <div class="date-nav-label">${displayDate}</div>
+        <button
+          class="date-nav-button"
+          ?disabled="${isViewingToday}"
+          @click="${() => this._shiftActiveDate(1)}"
+          title="Next day"
+          aria-label="Next day"
+        >
+          <ha-icon icon="mdi:chevron-right"></ha-icon>
+        </button>
+        ${!isViewingToday ? html`
+          <button
+            class="date-nav-today-button"
+            @click="${() => this._goToToday()}"
+            title="Go to today"
+          >
+            Today
+          </button>
+        ` : ""}
+      </div>
+    `;
+  }
+
   _renderTimeCategoryFilters(activeCategory, availableCategories) {
     const categories = [...(availableCategories || [])];
     if (categories.length > 0) {
@@ -2539,8 +2749,7 @@ class ChoremanderChildCard extends LitElement {
   }
 
   _isToday(date) {
-    const now = new Date();
-    const todayParts = this._getDatePartsInTimezone(now);
+    const todayParts = this._getDatePartsInTimezone(new Date());
     const dateParts = this._getDatePartsInTimezone(date);
 
     return (
@@ -2550,21 +2759,39 @@ class ChoremanderChildCard extends LitElement {
     );
   }
 
-  _filterCompletionsForToday(completions) {
-    // Filter completions to only include those completed today (in HA timezone)
-    return completions.filter(comp => {
+  _filterCompletionsForDate(completions, dateKey) {
+    const [targetYear, targetMonth, targetDay] = dateKey.split("-").map(Number);
+    return completions.filter((comp) => {
       if (!comp.completed_at) return false;
       const completedDate = new Date(comp.completed_at);
-      return this._isToday(completedDate);
+      const parts = this._getDatePartsInTimezone(completedDate);
+      return (
+        parts.year === targetYear &&
+        parts.month === targetMonth &&
+        parts.day === targetDay
+      );
     });
   }
 
-  _renderEmptyState() {
+  _filterCompletionsForToday(completions) {
+    return this._filterCompletionsForDate(completions, this._getTodayDateKey());
+  }
+
+  _renderEmptyState(isViewingToday = true) {
+    if (isViewingToday) {
+      return html`
+        <div class="empty-state">
+          <ha-icon icon="mdi:party-popper"></ha-icon>
+          <div class="message">All Done!</div>
+          <div class="submessage">No chores right now. Great job!</div>
+        </div>
+      `;
+    }
     return html`
       <div class="empty-state">
-        <ha-icon icon="mdi:party-popper"></ha-icon>
-        <div class="message">All Done!</div>
-        <div class="submessage">No chores right now. Great job!</div>
+        <ha-icon icon="mdi:calendar-blank"></ha-icon>
+        <div class="message">No chores</div>
+        <div class="submessage">Nothing was assigned for this day.</div>
       </div>
     `;
   }
@@ -2573,7 +2800,7 @@ class ChoremanderChildCard extends LitElement {
     return typeof icon === "string" && icon.startsWith("mdi:");
   }
 
-  _renderChoreCard(chore, child, todaysCompletions = [], choreIndex = 0, timeCategory = null) {
+  _renderChoreCard(chore, child, todaysCompletions = [], choreIndex = 0, timeCategory = null, isViewingToday = true) {
     const slotKey = this._getCompletionSlotKey(chore, child, timeCategory);
     const isLoading = this._loading[slotKey];
     const isCelebrating = this._celebratingSlot === slotKey;
@@ -2589,9 +2816,11 @@ class ChoremanderChildCard extends LitElement {
     let completionsToday = childCompletionsToday.length;
     const dailyLimit = chore.daily_limit || 1;
 
-    // Check for optimistic completions (chores just completed but not yet confirmed by HA)
+    // Check for optimistic completions (today only — chores just completed but not yet confirmed by HA)
     const optimisticKey = slotKey;
-    const optimisticData = this._optimisticCompletions && this._optimisticCompletions[optimisticKey];
+    const optimisticData = isViewingToday && this._optimisticCompletions
+      ? this._optimisticCompletions[optimisticKey]
+      : null;
     const hasOptimisticCompletion = !!optimisticData;
 
     // If we have an optimistic completion, always count it toward the limit
@@ -2650,8 +2879,9 @@ class ChoremanderChildCard extends LitElement {
     const chorePoints = Number.isFinite(chorePointsRaw) ? chorePointsRaw : 0;
     const showChorePoints = chorePoints > 0;
 
-    // Click handler for the entire row
+    // Click handler for the entire row (today only)
     const handleRowClick = () => {
+      if (!isViewingToday) return;
       if (isLoading) return;
       if (isCompletedForToday) {
         this._handleUndo(chore, child, childCompletionsToday, timeCategory);
@@ -2660,6 +2890,11 @@ class ChoremanderChildCard extends LitElement {
       }
     };
 
+    const dailyLimitLabel = isViewingToday ? "today" : "that day";
+    const rowTitle = !isViewingToday
+      ? (isCompletedForToday ? "Completed on this day" : "Not completed on this day")
+      : (isCompletedForToday ? "Click to undo" : "Click to complete");
+
     // When chore box font size is explicitly overridden, disable small/large presets.
     // (The font-size rules for small/large would otherwise override our CSS variables.)
     const hasChoreBoxOverride = this._parseNumericFontSizePx(this.config ? this.config.chore_box_font_size : undefined) != null;
@@ -2667,9 +2902,9 @@ class ChoremanderChildCard extends LitElement {
 
     return html`
       <div
-        class="chore-card ${isLoading ? "loading" : ""} ${isCelebrating ? "celebrating" : ""} ${isCompletedForToday ? "completed" : ""}"
+        class="chore-card ${isLoading ? "loading" : ""} ${isCelebrating ? "celebrating" : ""} ${isCompletedForToday ? "completed" : ""} ${!isViewingToday ? "read-only" : ""}"
         @click="${handleRowClick}"
-        title="${isCompletedForToday ? 'Click to undo' : 'Click to complete'}"
+        title="${rowTitle}"
         data-chore-color="${this.config.chore_color || 'default'}"
         line-size="${effectiveLineSize}"
         style="padding: ${this.config.chore_padding};"
@@ -2700,7 +2935,7 @@ class ChoremanderChildCard extends LitElement {
                 `
               : ""}
             ${dailyLimit > 1
-              ? html`<div class="chore-daily-limit">${completionsToday}/${dailyLimit} today</div>`
+              ? html`<div class="chore-daily-limit">${completionsToday}/${dailyLimit} ${dailyLimitLabel}</div>`
               : ""}
           </div>
         </div>
@@ -2724,7 +2959,9 @@ class ChoremanderChildCard extends LitElement {
     const dailyLimit = chore.daily_limit || 1;
 
     const optimisticKey = this._getCompletionSlotKey(chore, child, timeCategory);
-    const optimisticData = this._optimisticCompletions && this._optimisticCompletions[optimisticKey];
+    const optimisticData = this._isViewingToday() && this._optimisticCompletions
+      ? this._optimisticCompletions[optimisticKey]
+      : null;
     if (optimisticData) {
       const actualTimestamps = childCompletionsToday.map(comp =>
         comp.completed_at ? new Date(comp.completed_at).getTime() : 0
@@ -2796,6 +3033,9 @@ class ChoremanderChildCard extends LitElement {
   }
 
   async _handleComplete(chore, child, timeCategory = null) {
+    if (!this._isViewingToday()) {
+      return;
+    }
     const key = this._getCompletionSlotKey(chore, child, timeCategory);
     const dailyLimit = chore.daily_limit || 1;
 
@@ -2807,8 +3047,8 @@ class ChoremanderChildCard extends LitElement {
 
     // Get current completion count including optimistic completions
     const entity = this.hass.states[this.config.entity];
-    const allCompletions = (entity && entity.attributes && entity.attributes.todays_completions) || [];
-    const todaysCompletions = this._filterCompletionsForToday(allCompletions);
+    const allCompletions = this._getAllCompletions(entity);
+    const todaysCompletions = this._filterCompletionsForDate(allCompletions, this._getTodayDateKey());
     const actualCompletionsToday = this._filterCompletionsForChoreSlot(
       todaysCompletions,
       chore,
@@ -2921,6 +3161,9 @@ class ChoremanderChildCard extends LitElement {
   }
 
   async _handleUndo(chore, child, childCompletionsToday, timeCategory = null) {
+    if (!this._isViewingToday()) {
+      return;
+    }
     const key = this._getCompletionSlotKey(chore, child, timeCategory);
 
     // Check if already loading for this chore slot (prevent double-clicks during loading)
@@ -3329,6 +3572,19 @@ class ChoremanderChildCardEditor extends LitElement {
       </div>
 
       <div class="form-group">
+        <label>Date Navigation Font Size</label>
+        <input
+          type="number"
+          min="1"
+          step="1"
+          .value="${this._getNumericFontSizeInputValue(this.config.date_nav_font_size)}"
+          @input="${this._dateNavFontSizeChanged}"
+          placeholder="Default (px)"
+        />
+        <small>Font size for the date picker above the time category filters</small>
+      </div>
+
+      <div class="form-group">
         <label>Chore Color</label>
         <div class="color-row">
           <input
@@ -3636,6 +3892,10 @@ class ChoremanderChildCardEditor extends LitElement {
 
   _timeCategoryHeaderFontSizeChanged(e) {
     this._updateConfig("time_category_header_font_size", e.target.value);
+  }
+
+  _dateNavFontSizeChanged(e) {
+    this._updateConfig("date_nav_font_size", e.target.value);
   }
 
   _choreBoxFontSizeChanged(e) {

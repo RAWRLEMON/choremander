@@ -275,8 +275,9 @@ def completion_matches_time_slot(
     categories = chore.time_categories or ["anytime"]
     if len(categories) == 1:
         return categories[0] == slot
-    # Legacy completions without a slot on multi-category chores count for all slots.
-    return True
+    # Legacy completion without a slot on a multi-slot chore is ambiguous;
+    # do not count it toward any specific slot's daily limit.
+    return False
 
 
 @dataclass

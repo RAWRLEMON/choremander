@@ -416,6 +416,27 @@ class ChoremanderCoordinator(DataUpdateCoordinator):
         else:
             time_category = None
 
+        chore_categories = chore.time_categories or ["anytime"]
+
+        if time_category and time_category not in chore_categories:
+            raise ValueError(
+                f"Invalid time_category '{time_category}' for chore '{chore.name}'. "
+                f"Must be one of: {', '.join(chore_categories)}"
+                + (" or omitted." if len(chore_categories) == 1 else ".")
+            )
+
+        if len(chore_categories) > 1:
+            if not time_category:
+                raise ValueError(
+                    f"Chore '{chore.name}' has multiple time slots. "
+                    f"Specify time_category ({', '.join(chore_categories)})."
+                )
+            slot_for_limit = time_category
+        else:
+            slot_for_limit = None
+            # Single-slot chores don't need time_category on the completion record.
+            time_category = None
+
         # Check daily limit - count today's completions for this chore by this child.
         # For multi-category chores with a time slot, each slot has its own daily limit.
         # Both pending (unapproved) and approved completions count toward the limit.
@@ -423,10 +444,6 @@ class ChoremanderCoordinator(DataUpdateCoordinator):
         today = now.date()
         all_completions = self.storage.get_completions()
         todays_completions_count = 0
-        slot_for_limit = time_category
-        chore_categories = chore.time_categories or ["anytime"]
-        if len(chore_categories) <= 1:
-            slot_for_limit = None
 
         for comp in all_completions:
             if comp.chore_id != chore_id or comp.child_id != child_id:

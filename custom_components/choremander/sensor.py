@@ -124,28 +124,29 @@ class ChoremandorOverallStatsSensor(ChoremandorBaseSensor):
         all_completions = data.get("completions", [])
         pending_completions = data.get("pending_completions", [])
 
-        # Build today's completions summary (both approved and pending)
-        # Use HA timezone-aware datetime for proper date comparison
+        # Build completion summaries for the frontend (today + all history).
+        # Use HA timezone-aware datetime for proper date comparison.
         now = dt_util.now()
         today = now.date()
         todays_completions = []
+        all_completions_list = []
         for comp in all_completions:
-            # Convert completion time to HA timezone for proper date comparison
+            completion_entry = {
+                "completion_id": comp.id,
+                "chore_id": comp.chore_id,
+                "child_id": comp.child_id,
+                "approved": comp.approved,
+                "completed_at": comp.completed_at.isoformat() if hasattr(comp.completed_at, 'isoformat') else str(comp.completed_at),
+            }
+            if comp.time_category:
+                completion_entry["time_category"] = comp.time_category
+            all_completions_list.append(completion_entry)
+
             comp_dt = comp.completed_at
             if hasattr(comp_dt, 'astimezone'):
-                # If timezone-aware, convert to HA timezone
                 comp_dt = dt_util.as_local(comp_dt)
             comp_date = comp_dt.date() if hasattr(comp_dt, 'date') else comp_dt
             if comp_date == today:
-                completion_entry = {
-                    "completion_id": comp.id,
-                    "chore_id": comp.chore_id,
-                    "child_id": comp.child_id,
-                    "approved": comp.approved,
-                    "completed_at": comp.completed_at.isoformat() if hasattr(comp.completed_at, 'isoformat') else str(comp.completed_at),
-                }
-                if comp.time_category:
-                    completion_entry["time_category"] = comp.time_category
                 todays_completions.append(completion_entry)
 
         # Calculate pending points per child
@@ -230,6 +231,7 @@ class ChoremandorOverallStatsSensor(ChoremandorBaseSensor):
             "chores": chores_list,
             "rewards": rewards_list,
             "todays_completions": todays_completions,
+            "all_completions": all_completions_list,
             "total_completions_all_time": len(all_completions),
             "total_pending_completions": len(pending_completions),
         }
