@@ -1,7 +1,7 @@
 """Data coordinator for Choremander integration."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, time, timedelta
 import logging
 from typing import Any
 
@@ -198,7 +198,7 @@ class ChoremanderCoordinator(DataUpdateCoordinator):
         all_children = self.storage.get_children()
         all_chores = self.storage.get_chores()
 
-        _LOGGER.warning(
+        _LOGGER.debug(
             "CALC_COSTS: reward=%s, override=%s, days_to_goal=%s, cost=%s, assigned_to=%s",
             reward.name,
             getattr(reward, 'override_point_value', False),
@@ -206,7 +206,7 @@ class ChoremanderCoordinator(DataUpdateCoordinator):
             reward.cost,
             reward.assigned_to
         )
-        _LOGGER.warning("CALC_COSTS: found %d children, %d chores", len(all_children), len(all_chores))
+        _LOGGER.debug("CALC_COSTS: found %d children, %d chores", len(all_children), len(all_chores))
 
         # Determine which children are assigned to this reward
         if reward.assigned_to:
@@ -263,7 +263,7 @@ class ChoremanderCoordinator(DataUpdateCoordinator):
                 daily_points += daily_expected
 
             child_daily_points[child.id] = daily_points
-            _LOGGER.warning(
+            _LOGGER.debug(
                 "CALC_COSTS: child=%s, chores_counted=%d, daily_points=%.2f",
                 child.name, chores_counted, daily_points
             )
@@ -297,7 +297,7 @@ class ChoremanderCoordinator(DataUpdateCoordinator):
                         child.name, reward.cost
                     )
 
-        _LOGGER.warning("CALC_COSTS: final result for %s = %s", reward.name, result)
+        _LOGGER.debug("CALC_COSTS: final result for %s = %s", reward.name, result)
         return result
 
     def get_child_daily_points(self, reward: Reward) -> dict[str, float]:
@@ -396,11 +396,38 @@ class ChoremanderCoordinator(DataUpdateCoordinator):
         return self.storage.get_reward(reward_id)
 
     # Chore completion operations
+    def _resolve_completion_datetime(self, date_str: str | None) -> datetime:
+        """Resolve completed_at from an optional YYYY-MM-DD date (local time)."""
+        now = dt_util.now()
+        if not date_str:
+            return now
+
+        if isinstance(date_str, str):
+            date_str = date_str.strip()
+        else:
+            raise ValueError("Invalid date. Use YYYY-MM-DD.")
+
+        try:
+            target_date = date.fromisoformat(date_str)
+        except ValueError as err:
+            raise ValueError(f"Invalid date '{date_str}'. Use YYYY-MM-DD.") from err
+
+        today = now.date()
+        if target_date > today:
+            raise ValueError("Cannot complete chores for a future date.")
+
+        if target_date == today:
+            return now
+
+        # Noon local time keeps the calendar day unambiguous across DST edges.
+        return datetime.combine(target_date, time(12, 0), tzinfo=now.tzinfo)
+
     async def async_complete_chore(
         self,
         chore_id: str,
         child_id: str,
         time_category: str | None = None,
+        completion_date: str | None = None,
     ) -> ChoreCompletion:
         """Mark a chore as completed by a child."""
         chore = self.get_chore(chore_id)
@@ -437,13 +464,14 @@ class ChoremanderCoordinator(DataUpdateCoordinator):
             # Single-slot chores don't need time_category on the completion record.
             time_category = None
 
-        # Check daily limit - count today's completions for this chore by this child.
+        # Check daily limit for the target date (today by default).
         # For multi-category chores with a time slot, each slot has its own daily limit.
         # Both pending (unapproved) and approved completions count toward the limit.
-        now = dt_util.now()
-        today = now.date()
+        completed_at = self._resolve_completion_datetime(completion_date)
+        target_day = dt_util.as_local(completed_at).date()
+        is_today = target_day == dt_util.now().date()
         all_completions = self.storage.get_completions()
-        todays_completions_count = 0
+        day_completions_count = 0
 
         for comp in all_completions:
             if comp.chore_id != chore_id or comp.child_id != child_id:
@@ -453,24 +481,25 @@ class ChoremanderCoordinator(DataUpdateCoordinator):
             if hasattr(comp_dt, 'astimezone'):
                 comp_dt = dt_util.as_local(comp_dt)
             comp_date = comp_dt.date() if hasattr(comp_dt, 'date') else comp_dt
-            if comp_date != today:
+            if comp_date != target_day:
                 continue
             if not completion_matches_time_slot(comp.time_category, chore, slot_for_limit):
                 continue
-            todays_completions_count += 1
+            day_completions_count += 1
 
         daily_limit = getattr(chore, 'daily_limit', 1)
-        if todays_completions_count >= daily_limit:
+        if day_completions_count >= daily_limit:
             slot_label = f" ({time_category})" if slot_for_limit else ""
+            day_label = "today" if is_today else f"on {target_day.isoformat()}"
             raise ValueError(
                 f"Daily limit reached for chore '{chore.name}'{slot_label}. "
-                f"Already completed {todays_completions_count} time(s) today (limit: {daily_limit})"
+                f"Already completed {day_completions_count} time(s) {day_label} (limit: {daily_limit})"
             )
 
         completion = ChoreCompletion(
             chore_id=chore_id,
             child_id=child_id,
-            completed_at=now,
+            completed_at=completed_at,
             approved=not chore.requires_approval,
             points_awarded=chore.points if not chore.requires_approval else 0,
             time_category=time_category,

@@ -20,6 +20,7 @@ from .const import (
     ATTR_COMPLETION_SOUND,
     ATTR_COST,
     ATTR_DAILY_LIMIT,
+    ATTR_DATE,
     ATTR_DAYS_TO_GOAL,
     ATTR_DESCRIPTION,
     ATTR_DUE_DAYS,
@@ -140,7 +141,10 @@ async def _async_register_services(hass: HomeAssistant) -> None:
         chore_id = call.data[ATTR_CHORE_ID]
         child_id = call.data[ATTR_CHILD_ID]
         time_category = call.data.get(ATTR_TIME_CATEGORY)
-        await coordinator.async_complete_chore(chore_id, child_id, time_category)
+        completion_date = call.data.get(ATTR_DATE)
+        await coordinator.async_complete_chore(
+            chore_id, child_id, time_category, completion_date
+        )
 
     async def handle_approve_chore(call: ServiceCall) -> None:
         """Handle the approve_chore service call."""
@@ -377,6 +381,7 @@ async def _async_register_services(hass: HomeAssistant) -> None:
                 vol.Required(ATTR_CHORE_ID): cv.string,
                 vol.Required(ATTR_CHILD_ID): cv.string,
                 vol.Optional(ATTR_TIME_CATEGORY): cv.string,
+                vol.Optional(ATTR_DATE): cv.string,
             }
         ),
     )

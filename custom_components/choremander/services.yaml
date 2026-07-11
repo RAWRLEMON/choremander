@@ -26,6 +26,12 @@ complete_chore:
             - evening
             - night
             - anytime
+    date:
+      name: Date
+      description: Optional date (YYYY-MM-DD) to record the completion for. Defaults to today. Cannot be in the future.
+      required: false
+      selector:
+        date:
 
 approve_chore:
   name: Approve Chore

@@ -1071,22 +1071,6 @@ class ChoremanderChildCard extends LitElement {
         pointer-events: none;
       }
 
-      .chore-card.read-only {
-        cursor: default;
-      }
-
-      .chore-card.read-only:active {
-        transform: none;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-      }
-
-      @media (hover: hover) {
-        .chore-card.read-only:hover {
-          transform: none;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        }
-      }
-
       .chore-card.celebrating {
         animation: celebrate-wiggle 0.5s ease-in-out;
       }
@@ -2349,9 +2333,10 @@ class ChoremanderChildCard extends LitElement {
     return false;
   }
 
-  _getCompletionSlotKey(chore, child, timeCategory) {
+  _getCompletionSlotKey(chore, child, timeCategory, dateKey = null) {
     const slot = timeCategory && timeCategory !== "all" ? timeCategory : "default";
-    return `${chore.id}_${child.id}_${slot}`;
+    const date = dateKey || this._getActiveDateKey();
+    return `${chore.id}_${child.id}_${slot}_${date}`;
   }
 
   _filterCompletionsForChoreSlot(completions, chore, child, timeCategory) {
@@ -2800,12 +2785,41 @@ class ChoremanderChildCard extends LitElement {
     return typeof icon === "string" && icon.startsWith("mdi:");
   }
 
+  _countUnreflectedOptimistic(optimisticData, actualCompletions) {
+    if (!optimisticData) {
+      return 0;
+    }
+
+    const optimisticCount = optimisticData.count || 1;
+    const baselineCount = optimisticData.baselineCount;
+    if (typeof baselineCount === "number") {
+      const newlyReflected = Math.max(0, actualCompletions.length - baselineCount);
+      return Math.max(0, optimisticCount - newlyReflected);
+    }
+
+    // Legacy fallback: match by timestamp proximity (today completions stamped as now)
+    const actualTimestamps = actualCompletions.map((comp) =>
+      comp.completed_at ? new Date(comp.completed_at).getTime() : 0
+    );
+    const optimisticTimestamps = optimisticData.timestamps || [
+      optimisticData.timestamp || Date.now(),
+    ];
+    let unreflectedOptimistic = 0;
+    for (const optTs of optimisticTimestamps) {
+      const isReflected = actualTimestamps.some((actTs) => Math.abs(actTs - optTs) < 2000);
+      if (!isReflected) {
+        unreflectedOptimistic += 1;
+      }
+    }
+    return unreflectedOptimistic;
+  }
+
   _renderChoreCard(chore, child, todaysCompletions = [], choreIndex = 0, timeCategory = null, isViewingToday = true) {
     const slotKey = this._getCompletionSlotKey(chore, child, timeCategory);
     const isLoading = this._loading[slotKey];
     const isCelebrating = this._celebratingSlot === slotKey;
 
-    // Check how many times this chore was completed today by this child for this time slot
+    // Check how many times this chore was completed on the active date by this child for this time slot
     // Both pending (awaiting approval) AND approved completions count toward the daily limit
     const childCompletionsToday = this._filterCompletionsForChoreSlot(
       todaysCompletions,
@@ -2816,37 +2830,18 @@ class ChoremanderChildCard extends LitElement {
     let completionsToday = childCompletionsToday.length;
     const dailyLimit = chore.daily_limit || 1;
 
-    // Check for optimistic completions (today only — chores just completed but not yet confirmed by HA)
+    // Check for optimistic completions (just completed but not yet confirmed by HA)
     const optimisticKey = slotKey;
-    const optimisticData = isViewingToday && this._optimisticCompletions
+    const optimisticData = this._optimisticCompletions
       ? this._optimisticCompletions[optimisticKey]
       : null;
     const hasOptimisticCompletion = !!optimisticData;
 
-    // If we have an optimistic completion, always count it toward the limit
-    // This is defensive - we'd rather show "completed" incorrectly than allow double-completions
-    // The optimistic completion will be cleaned up once we verify the server state reflects it
     if (hasOptimisticCompletion) {
-      // Calculate how many optimistic completions we've tracked that aren't yet in the data
-      const optimisticCount = optimisticData.count || 1;
-
-      // Get timestamps from actual completions for this chore/child today
-      const actualTimestamps = childCompletionsToday.map(comp =>
-        comp.completed_at ? new Date(comp.completed_at).getTime() : 0
+      completionsToday += this._countUnreflectedOptimistic(
+        optimisticData,
+        childCompletionsToday
       );
-
-      // Count how many of our optimistic completions are NOT yet reflected in the data
-      // An optimistic completion is "reflected" if there's an actual completion within 2 seconds of it
-      const optimisticTimestamps = optimisticData.timestamps || [optimisticData.timestamp || Date.now()];
-      let unreflectedOptimistic = 0;
-      for (const optTs of optimisticTimestamps) {
-        const isReflected = actualTimestamps.some(actTs => Math.abs(actTs - optTs) < 2000);
-        if (!isReflected) {
-          unreflectedOptimistic += 1;
-        }
-      }
-
-      completionsToday += unreflectedOptimistic;
     }
 
     const isCompletedForToday = completionsToday >= dailyLimit;
@@ -2879,9 +2874,7 @@ class ChoremanderChildCard extends LitElement {
     const chorePoints = Number.isFinite(chorePointsRaw) ? chorePointsRaw : 0;
     const showChorePoints = chorePoints > 0;
 
-    // Click handler for the entire row (today only)
     const handleRowClick = () => {
-      if (!isViewingToday) return;
       if (isLoading) return;
       if (isCompletedForToday) {
         this._handleUndo(chore, child, childCompletionsToday, timeCategory);
@@ -2891,9 +2884,7 @@ class ChoremanderChildCard extends LitElement {
     };
 
     const dailyLimitLabel = isViewingToday ? "today" : "that day";
-    const rowTitle = !isViewingToday
-      ? (isCompletedForToday ? "Completed on this day" : "Not completed on this day")
-      : (isCompletedForToday ? "Click to undo" : "Click to complete");
+    const rowTitle = isCompletedForToday ? "Click to undo" : "Click to complete";
 
     // When chore box font size is explicitly overridden, disable small/large presets.
     // (The font-size rules for small/large would otherwise override our CSS variables.)
@@ -2902,7 +2893,7 @@ class ChoremanderChildCard extends LitElement {
 
     return html`
       <div
-        class="chore-card ${isLoading ? "loading" : ""} ${isCelebrating ? "celebrating" : ""} ${isCompletedForToday ? "completed" : ""} ${!isViewingToday ? "read-only" : ""}"
+        class="chore-card ${isLoading ? "loading" : ""} ${isCelebrating ? "celebrating" : ""} ${isCompletedForToday ? "completed" : ""}"
         @click="${handleRowClick}"
         title="${rowTitle}"
         data-chore-color="${this.config.chore_color || 'default'}"
@@ -2959,24 +2950,14 @@ class ChoremanderChildCard extends LitElement {
     const dailyLimit = chore.daily_limit || 1;
 
     const optimisticKey = this._getCompletionSlotKey(chore, child, timeCategory);
-    const optimisticData = this._isViewingToday() && this._optimisticCompletions
+    const optimisticData = this._optimisticCompletions
       ? this._optimisticCompletions[optimisticKey]
       : null;
     if (optimisticData) {
-      const actualTimestamps = childCompletionsToday.map(comp =>
-        comp.completed_at ? new Date(comp.completed_at).getTime() : 0
+      completionsToday += this._countUnreflectedOptimistic(
+        optimisticData,
+        childCompletionsToday
       );
-
-      const optimisticTimestamps = optimisticData.timestamps || [optimisticData.timestamp || Date.now()];
-      let unreflectedOptimistic = 0;
-      for (const optTs of optimisticTimestamps) {
-        const isReflected = actualTimestamps.some(actTs => Math.abs(actTs - optTs) < 2000);
-        if (!isReflected) {
-          unreflectedOptimistic += 1;
-        }
-      }
-
-      completionsToday += unreflectedOptimistic;
     }
 
     return completionsToday >= dailyLimit;
@@ -3033,10 +3014,8 @@ class ChoremanderChildCard extends LitElement {
   }
 
   async _handleComplete(chore, child, timeCategory = null) {
-    if (!this._isViewingToday()) {
-      return;
-    }
-    const key = this._getCompletionSlotKey(chore, child, timeCategory);
+    const activeDateKey = this._getActiveDateKey();
+    const key = this._getCompletionSlotKey(chore, child, timeCategory, activeDateKey);
     const dailyLimit = chore.daily_limit || 1;
 
     // Check if already loading for this chore slot (prevent double-clicks during loading)
@@ -3048,9 +3027,9 @@ class ChoremanderChildCard extends LitElement {
     // Get current completion count including optimistic completions
     const entity = this.hass.states[this.config.entity];
     const allCompletions = this._getAllCompletions(entity);
-    const todaysCompletions = this._filterCompletionsForDate(allCompletions, this._getTodayDateKey());
+    const dateCompletions = this._filterCompletionsForDate(allCompletions, activeDateKey);
     const actualCompletionsToday = this._filterCompletionsForChoreSlot(
-      todaysCompletions,
+      dateCompletions,
       chore,
       child,
       timeCategory
@@ -3084,6 +3063,11 @@ class ChoremanderChildCard extends LitElement {
         timestamp: now,
         timestamps: [...existingTimestamps, now],
         count: existingOptimisticCount + 1,
+        baselineCount:
+          existingData && typeof existingData.baselineCount === "number"
+            ? existingData.baselineCount
+            : actualCompletionsToday,
+        dateKey: activeDateKey,
       },
     };
 
@@ -3097,6 +3081,9 @@ class ChoremanderChildCard extends LitElement {
       };
       if (timeCategory && timeCategory !== "all") {
         serviceData.time_category = timeCategory;
+      }
+      if (!this._isViewingToday()) {
+        serviceData.date = activeDateKey;
       }
       await this.hass.callService("choremander", "complete_chore", serviceData);
 
@@ -3161,9 +3148,6 @@ class ChoremanderChildCard extends LitElement {
   }
 
   async _handleUndo(chore, child, childCompletionsToday, timeCategory = null) {
-    if (!this._isViewingToday()) {
-      return;
-    }
     const key = this._getCompletionSlotKey(chore, child, timeCategory);
 
     // Check if already loading for this chore slot (prevent double-clicks during loading)
